@@ -1,35 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Typography, Button, TextField, Grid, Box } from '@mui/material';
-import db from '../firebaseConfig'; // Asegúrate que la ruta sea correcta
-import { collection, addDoc, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { Link } from 'react-router-dom';
+import db from '../firebaseConfig';
+import { collection, addDoc } from 'firebase/firestore';
 
 function UsersManagement() {
     const [showForm, setShowForm] = useState(false);
     const [clientData, setClientData] = useState({
         codigo: '',
-        razonSocial: '',
-        direccion: '',
-        formaEntrega: '',
-        detalleCliente: '',
-        zona: '',
-        cobranza: '',
-        activo: ''
+        nombre: '',
+        categoria: '',
+        acciones: ''
     });
-    const [nextClientId, setNextClientId] = useState(1);
-
-    useEffect(() => {
-        const fetchNextClientId = async () => {
-            const q = query(collection(db, "clientes"), orderBy("codigo", "desc"), limit(1));
-            const querySnapshot = await getDocs(q);
-            const lastClient = querySnapshot.docs.map(doc => doc.data())[0];
-            if (lastClient) {
-                setNextClientId(parseInt(lastClient.codigo) + 1);
-            } else {
-                setNextClientId(1); // Inicia desde 1 si no hay clientes
-            }
-        };
-        fetchNextClientId();
-    }, []);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -40,23 +22,21 @@ function UsersManagement() {
     };
 
     const handleSaveClient = async () => {
+        if (!clientData.codigo || !clientData.nombre) {
+            alert("Por favor, complete al menos el código y el nombre.");
+            return;
+        }
         await addDoc(collection(db, "clientes"), {
-            ...clientData,
-            codigo: nextClientId // Utilizar el siguiente ID disponible
+            ...clientData
         });
         setShowForm(false);
-        setClientData({ // Limpiar todos los campos después de guardar
+        setClientData({ // Reset fields after saving
             codigo: '',
-            razonSocial: '',
-            direccion: '',
-            formaEntrega: '',
-            detalleCliente: '',
-            zona: '',
-            cobranza: '',
-            activo: ''
+            nombre: '',
+            categoria: '',
+            acciones: ''
         });
-        setNextClientId(nextClientId + 1); // Incrementar el ID para el próximo cliente
-        alert("Información guardada con éxito"); // Mostrar alerta de éxito
+        alert("Cliente guardado con éxito");
     };
 
     const toggleForm = () => {
@@ -68,19 +48,17 @@ function UsersManagement() {
             <Grid item xs={12}>
                 <Typography variant="h4">Gestión de Usuarios</Typography>
                 <Button variant="outlined" color="secondary" onClick={toggleForm}>
-                    {showForm ? 'Cancelar' : 'Agregar Cliente'}
+                    {showForm ? 'Cancelar' : 'Agregar Usuario'}
+                </Button>
+                <Button variant="outlined" color="primary" component={Link} to="/gestion-productos" style={{ marginLeft: 8 }}>
+                    Ver Usuarios
                 </Button>
                 {showForm && (
                     <Box mt={2} width="100%">
                         <TextField name="codigo" value={clientData.codigo} onChange={handleInputChange} label="Código" variant="outlined" fullWidth margin="normal" />
-                        <TextField name="razonSocial" value={clientData.razonSocial} onChange={handleInputChange} label="Razón Social" variant="outlined" fullWidth margin="normal" />
-                        <TextField name="direccion" value={clientData.direccion} onChange={handleInputChange} label="Dirección" variant="outlined" fullWidth margin="normal" />
-                        <TextField name="formaEntrega" value={clientData.formaEntrega} onChange={handleInputChange} label="Forma de Entrega" variant="outlined" fullWidth margin="normal" />
-                        <TextField name="detalleCliente" value={clientData.detalleCliente} onChange={handleInputChange} label="Detalle del Cliente" variant="outlined" fullWidth margin="normal" />
-                        <TextField name="zona" value={clientData.zona} onChange={handleInputChange} label="Zona" variant="outlined" fullWidth margin="normal" />
-                        <TextField name="cobranza" value={clientData.cobranza} onChange={handleInputChange} label="Cobranza" variant="outlined" fullWidth margin="normal" />
-                        <TextField name="activo" value={clientData.activo} onChange={handleInputChange} label="Activo" variant="outlined" fullWidth margin="normal" />
-                        <Button variant="contained" color="primary" onClick={handleSaveClient} style={{ marginTop: 8 }}>Guardar Cliente</Button>
+                        <TextField name="nombre" value={clientData.nombre} onChange={handleInputChange} label="Nombre" variant="outlined" fullWidth margin="normal" />
+                        <TextField name="categoria" value={clientData.categoria} onChange={handleInputChange} label="Categoría" variant="outlined" fullWidth margin="normal" />
+                        <Button variant="contained" color="primary" onClick={handleSaveClient} style={{ marginTop: 8 }}>Guardar Usuario</Button>
                     </Box>
                 )}
             </Grid>
