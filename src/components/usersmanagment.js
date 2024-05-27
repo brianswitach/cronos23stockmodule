@@ -46,19 +46,19 @@ function UsersManagement() {
     return (
         <Grid container spacing={2}>
             <Grid item xs={12}>
-                <Typography variant="h4">Gestión de Usuarios</Typography>
+                <Typography variant="h4">Gestión de Productos</Typography>
                 <Button variant="outlined" color="secondary" onClick={toggleForm}>
-                    {showForm ? 'Cancelar' : 'Agregar Usuario'}
+                    {showForm ? 'Cancelar' : 'Agregar Producto'}
                 </Button>
                 <Button variant="outlined" color="primary" component={Link} to="/gestion-productos" style={{ marginLeft: 8 }}>
-                    Ver Usuarios
+                    Ver Productos
                 </Button>
                 {showForm && (
                     <Box mt={2} width="100%">
                         <TextField name="codigo" value={clientData.codigo} onChange={handleInputChange} label="Código" variant="outlined" fullWidth margin="normal" />
                         <TextField name="nombre" value={clientData.nombre} onChange={handleInputChange} label="Nombre" variant="outlined" fullWidth margin="normal" />
                         <TextField name="categoria" value={clientData.categoria} onChange={handleInputChange} label="Categoría" variant="outlined" fullWidth margin="normal" />
-                        <Button variant="contained" color="primary" onClick={handleSaveClient} style={{ marginTop: 8 }}>Guardar Usuario</Button>
+                        <Button variant="contained" color="primary" onClick={handleSaveClient} style={{ marginTop: 8 }}>Guardar Producto</Button>
                     </Box>
                 )}
             </Grid>

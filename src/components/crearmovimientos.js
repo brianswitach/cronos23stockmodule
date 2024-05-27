@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Typography,
   Button,
@@ -15,34 +15,24 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  TextField,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle
+  TextField
 } from '@mui/material';
 import db from '../firebaseConfig';
-import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, doc, deleteDoc } from 'firebase/firestore';
+import emailjs from 'emailjs-com'; // Importa EmailJS
 
 function CrearMovimientos() {
   const [movimientos, setMovimientos] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [depositos, setDepositos] = useState([]);
-  const [inventario, setInventario] = useState([]);
   const [movimiento, setMovimiento] = useState({
     codigoPR: '',
     deposito: '',
     operacion: '',
     cantidad: ''
   });
-  const [editMov, setEditMov] = useState(null);
-  const [openEditDialog, setOpenEditDialog] = useState(false);
 
-  useEffect(() => {
-    fetchDatos();
-  }, []);
-
-  const fetchDatos = async () => {
+  const fetchDatos = useCallback(async () => {
     const [usuariosSnapshot, depositosSnapshot, movimientosSnapshot] = await Promise.all([
       getDocs(collection(db, "clientes")),
       getDocs(collection(db, "depositos")),
@@ -56,36 +46,33 @@ function CrearMovimientos() {
     setClientes(clientesData);
     setDepositos(depositosData);
     setMovimientos(movimientosData);
-    calcularInventario(clientesData, movimientosData);
-  };
+  }, []);
 
-  const calcularInventario = (clientesData, movimientosData) => {
-    let inventarioTemp = clientesData.reduce((acc, cliente) => {
-      acc[cliente.codigo] = {
-        codigoPR: cliente.codigo,
-        nombre: cliente.nombre,
-        categoria: cliente.categoria,
-        cantidad: 0
-      };
-      return acc;
-    }, {});
-
-    movimientosData.forEach((mov) => {
-      if (inventarioTemp[mov.codigoPR]) {
-        if (mov.operacion === 'Alta') {
-          inventarioTemp[mov.codigoPR].cantidad += Number(mov.cantidad);
-        } else if (mov.operacion === 'Baja') {
-          inventarioTemp[mov.codigoPR].cantidad -= Number(mov.cantidad);
-        }
-      }
-    });
-
-    setInventario(Object.values(inventarioTemp));
-  };
+  useEffect(() => {
+    fetchDatos();
+  }, [fetchDatos]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setMovimiento(prev => ({ ...prev, [name]: value }));
+  };
+
+  const sendEmail = (movimiento) => {
+    const templateParams = {
+      codigoPR: movimiento.codigoPR,
+      deposito: movimiento.deposito,
+      operacion: movimiento.operacion,
+      cantidad: movimiento.cantidad,
+      fechaHora: new Date().toLocaleString(),
+      from_name: 'Brian'
+    };
+
+    emailjs.send('service_t2ejr4m', 'template_l9ld2pk', templateParams, 'LIKjfdvKCHMrIvJH9')
+      .then((response) => {
+        console.log('Correo enviado con éxito!', response.status, response.text);
+      }, (error) => {
+        console.log('Error al enviar el correo:', error);
+      });
   };
 
   const handleSubmit = async () => {
@@ -93,26 +80,15 @@ function CrearMovimientos() {
       alert("Por favor, complete todos los campos del formulario.");
       return;
     }
-    await addDoc(collection(db, "movimientos"), movimiento);
+    const newMovimiento = {
+      ...movimiento,
+      fechaHora: new Date().toISOString()
+    };
+    await addDoc(collection(db, "movimientos"), newMovimiento);
     alert("Movimiento creado con éxito.");
+    sendEmail(newMovimiento); // Enviar el correo electrónico
     setMovimiento({ codigoPR: '', deposito: '', operacion: '', cantidad: '' });
     fetchDatos();
-  };
-
-  const handleOpenEditDialog = (mov) => {
-    setEditMov(mov);
-    setOpenEditDialog(true);
-  };
-
-  const handleCloseEditDialog = () => {
-    setOpenEditDialog(false);
-    setEditMov(null);
-  };
-
-  const handleEditMovimiento = async () => {
-    await updateDoc(doc(db, "movimientos", editMov.id), editMov);
-    fetchDatos();
-    handleCloseEditDialog();
   };
 
   const handleDeleteMovimiento = async (id) => {
@@ -120,9 +96,19 @@ function CrearMovimientos() {
     fetchDatos();
   };
 
+  const sortMovimientos = (order) => {
+    const sortedMovimientos = [...movimientos].sort((a, b) => {
+      if (order === 'asc') {
+        return new Date(a.fechaHora) - new Date(b.fechaHora);
+      } else {
+        return new Date(b.fechaHora) - new Date(a.fechaHora);
+      }
+    });
+    setMovimientos(sortedMovimientos);
+  };
+
   return (
     <Grid container spacing={2}>
-      {/* Código para crear movimiento */}
       <Grid item xs={12}>
         <Typography variant="h4" gutterBottom>Crear Movimiento</Typography>
         <FormControl fullWidth margin="normal">
@@ -184,11 +170,12 @@ function CrearMovimientos() {
         </Button>
       </Grid>
 
-      {/* Código para mostrar movimientos */}
       <Grid item xs={12}>
         <Divider style={{ margin: '20px 0' }} />
         <Typography variant="h4" gutterBottom>Movimientos:</Typography>
-        <TableContainer component={Paper}>
+        <Button variant="contained" onClick={() => sortMovimientos('asc')}>Ordenar por Fecha Ascendente</Button>
+        <Button variant="contained" onClick={() => sortMovimientos('desc')} style={{ marginLeft: 8 }}>Ordenar por Fecha Descendente</Button>
+        <TableContainer component={Paper} style={{ marginTop: 16 }}>
           <Table sx={{ minWidth: 650 }} aria-label="simple table">
             <TableHead>
               <TableRow>
@@ -196,6 +183,7 @@ function CrearMovimientos() {
                 <TableCell>Depósito</TableCell>
                 <TableCell>Operación</TableCell>
                 <TableCell>Cantidad</TableCell>
+                <TableCell>Fecha y Hora</TableCell>
                 <TableCell>Acciones</TableCell>
               </TableRow>
             </TableHead>
@@ -206,38 +194,10 @@ function CrearMovimientos() {
                   <TableCell>{mov.deposito}</TableCell>
                   <TableCell>{mov.operacion}</TableCell>
                   <TableCell>{mov.cantidad}</TableCell>
+                  <TableCell>{new Date(mov.fechaHora).toLocaleString()}</TableCell>
                   <TableCell>
-                    <Button variant="contained" color="primary" onClick={() => handleOpenEditDialog(mov)} sx={{ marginRight: '8px' }}>Editar</Button>
                     <Button variant="contained" color="secondary" onClick={() => handleDeleteMovimiento(mov.id)}>Eliminar</Button>
                   </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Grid>
-
-      {/* Código para mostrar inventario */}
-      <Grid item xs={12}>
-        <Divider style={{ margin: '20px 0' }} />
-        <Typography variant="h4" gutterBottom>Inventario:</Typography>
-        <TableContainer component={Paper}>
-          <Table sx={{ minWidth: 650 }} aria-label="simple table">
-            <TableHead>
-              <TableRow>
-                <TableCell>Código PR</TableCell>
-                <TableCell>Nombre</TableCell>
-                <TableCell>Categoría</TableCell>
-                <TableCell>Cantidad</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {inventario.map((inv, index) => (
-                <TableRow key={index}>
-                  <TableCell>{inv.codigoPR}</TableCell>
-                  <TableCell>{inv.nombre}</TableCell>
-                  <TableCell>{inv.categoria}</TableCell>
-                  <TableCell>{inv.cantidad}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

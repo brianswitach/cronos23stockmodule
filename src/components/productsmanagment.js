@@ -1,14 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Grid, Paper, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Dialog, DialogActions, DialogContent, DialogTitle, TextField } from '@mui/material';
+import { Typography, Button, TextField, Grid, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Dialog, DialogActions, DialogContent, DialogTitle, Box } from '@mui/material';
 import db from '../firebaseConfig';
-import { collection, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore'; // Agregamos 'doc' aquí
 
 function ProductsManagement() {
+    const [showForm, setShowForm] = useState(false);
+    const [clientData, setClientData] = useState({
+        codigo: '',
+        nombre: '',
+        categoria: '',
+        acciones: ''
+    });
     const [usuarios, setUsuarios] = useState([]);
     const [open, setOpen] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
 
-    // Definir la función fetchUsuarios dentro del componente
     const fetchUsuarios = async () => {
         const querySnapshot = await getDocs(collection(db, "clientes"));
         const userList = querySnapshot.docs.map(doc => ({
@@ -19,8 +25,39 @@ function ProductsManagement() {
     };
 
     useEffect(() => {
-        fetchUsuarios();  // Llamar a fetchUsuarios correctamente
+        fetchUsuarios();
     }, []);
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setClientData(prevState => ({
+            ...prevState,
+            [name]: value
+        }));
+    };
+
+    const handleSaveClient = async () => {
+        if (!clientData.codigo || !clientData.nombre) {
+            alert("Por favor, complete al menos el código y el nombre.");
+            return;
+        }
+        await addDoc(collection(db, "clientes"), {
+            ...clientData
+        });
+        setShowForm(false);
+        setClientData({ // Reset fields after saving
+            codigo: '',
+            nombre: '',
+            categoria: '',
+            acciones: ''
+        });
+        alert("Cliente guardado con éxito");
+        fetchUsuarios();
+    };
+
+    const toggleForm = () => {
+        setShowForm(!showForm);
+    };
 
     const handleEdit = (usuario) => {
         setOpen(true);
@@ -34,13 +71,13 @@ function ProductsManagement() {
     const handleUpdate = async () => {
         const userRef = doc(db, "clientes", currentUser.id);
         await updateDoc(userRef, { ...currentUser });
-        fetchUsuarios();  // Llamar a fetchUsuarios correctamente
+        fetchUsuarios();
         handleClose();
     };
 
     const handleDelete = async (id) => {
         await deleteDoc(doc(db, "clientes", id));
-        fetchUsuarios();  // Llamar a fetchUsuarios correctamente
+        fetchUsuarios();
     };
 
     const handleChange = (e) => {
@@ -51,7 +88,20 @@ function ProductsManagement() {
     return (
         <Grid container spacing={2}>
             <Grid item xs={12}>
-                <Typography variant="h4" gutterBottom>Gestión de Usuarios</Typography>
+                <Typography variant="h4">Gestión de Productos</Typography>
+                <Button variant="outlined" color="secondary" onClick={toggleForm}>
+                    {showForm ? 'Cancelar' : 'Agregar Producto'}
+                </Button>
+                {showForm && (
+                    <Box mt={2} width="100%">
+                        <TextField name="codigo" value={clientData.codigo} onChange={handleInputChange} label="Código" variant="outlined" fullWidth margin="normal" />
+                        <TextField name="nombre" value={clientData.nombre} onChange={handleInputChange} label="Nombre" variant="outlined" fullWidth margin="normal" />
+                        <TextField name="categoria" value={clientData.categoria} onChange={handleInputChange} label="Categoría" variant="outlined" fullWidth margin="normal" />
+                        <Button variant="contained" color="primary" onClick={handleSaveClient} style={{ marginTop: 8 }}>Guardar Producto</Button>
+                    </Box>
+                )}
+            </Grid>
+            <Grid item xs={12}>
                 <TableContainer component={Paper}>
                     <Table sx={{ minWidth: 650 }} aria-label="simple table">
                         <TableHead>
@@ -80,7 +130,7 @@ function ProductsManagement() {
             </Grid>
             {open && (
                 <Dialog open={open} onClose={handleClose}>
-                    <DialogTitle>Edit User</DialogTitle>
+                    <DialogTitle>Editar Producto</DialogTitle>
                     <DialogContent>
                         <TextField
                             margin="dense"
@@ -121,3 +171,4 @@ function ProductsManagement() {
 }
 
 export default ProductsManagement;
+
