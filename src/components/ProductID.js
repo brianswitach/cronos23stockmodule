@@ -200,7 +200,7 @@ function ProductID() {
     <Box sx={{ flexGrow: 1, maxWidth: 752 }}>
       <Grid container spacing={2}>
         <Grid item xs={12}>
-          <Typography variant="h4" gutterBottom>Carga de IDs</Typography>
+          <Typography variant="h4" gutterBottom>Gestión de IDs</Typography>
           <FormControl fullWidth margin="normal">
             <InputLabel id="producto-label">Seleccionar Producto</InputLabel>
             <Select
