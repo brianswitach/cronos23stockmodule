@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Typography, Button, TextField, Grid, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Dialog, DialogActions, DialogContent, DialogTitle, Box } from '@mui/material';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Typography, Button, TextField, Grid, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Dialog, DialogActions, DialogContent, DialogTitle, Box, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import db from '../firebaseConfig';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore'; // Agregamos 'doc' aquí
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 
 function ProductsManagement() {
     const [showForm, setShowForm] = useState(false);
@@ -12,6 +12,7 @@ function ProductsManagement() {
         acciones: ''
     });
     const [usuarios, setUsuarios] = useState([]);
+    const [categorias, setCategorias] = useState([]);
     const [open, setOpen] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
 
@@ -24,8 +25,18 @@ function ProductsManagement() {
         setUsuarios(userList);
     };
 
+    const fetchCategorias = async () => {
+        const querySnapshot = await getDocs(collection(db, "categorias"));
+        const categoriasList = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+        setCategorias(categoriasList);
+    };
+
     useEffect(() => {
         fetchUsuarios();
+        fetchCategorias();
     }, []);
 
     const handleInputChange = (e) => {
@@ -96,7 +107,22 @@ function ProductsManagement() {
                     <Box mt={2} width="100%">
                         <TextField name="codigo" value={clientData.codigo} onChange={handleInputChange} label="Código" variant="outlined" fullWidth margin="normal" />
                         <TextField name="nombre" value={clientData.nombre} onChange={handleInputChange} label="Nombre" variant="outlined" fullWidth margin="normal" />
-                        <TextField name="categoria" value={clientData.categoria} onChange={handleInputChange} label="Categoría" variant="outlined" fullWidth margin="normal" />
+                        <FormControl fullWidth margin="normal">
+                            <InputLabel id="categoria-label">Categoría</InputLabel>
+                            <Select
+                                labelId="categoria-label"
+                                name="categoria"
+                                value={clientData.categoria}
+                                onChange={handleInputChange}
+                                label="Categoría"
+                            >
+                                {categorias.map((categoria) => (
+                                    <MenuItem key={categoria.id} value={categoria.nombre}>
+                                        {categoria.nombre}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
                         <Button variant="contained" color="primary" onClick={handleSaveClient} style={{ marginTop: 8 }}>Guardar Producto</Button>
                     </Box>
                 )}
@@ -150,15 +176,22 @@ function ProductsManagement() {
                             value={currentUser.nombre}
                             onChange={handleChange}
                         />
-                        <TextField
-                            margin="dense"
-                            label="Categoría"
-                            type="text"
-                            fullWidth
-                            name="categoria"
-                            value={currentUser.categoria}
-                            onChange={handleChange}
-                        />
+                        <FormControl fullWidth margin="normal">
+                            <InputLabel id="categoria-label">Categoría</InputLabel>
+                            <Select
+                                labelId="categoria-label"
+                                name="categoria"
+                                value={currentUser.categoria}
+                                onChange={handleChange}
+                                label="Categoría"
+                            >
+                                {categorias.map((categoria) => (
+                                    <MenuItem key={categoria.id} value={categoria.nombre}>
+                                        {categoria.nombre}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
                     </DialogContent>
                     <DialogActions>
                         <Button onClick={handleClose}>Cancelar</Button>
@@ -171,4 +204,3 @@ function ProductsManagement() {
 }
 
 export default ProductsManagement;
-

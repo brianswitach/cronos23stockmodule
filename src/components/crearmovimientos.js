@@ -110,7 +110,7 @@ function CrearMovimientos() {
   return (
     <Grid container spacing={2}>
       <Grid item xs={12}>
-        <Typography variant="h4" gutterBottom>Crear Movimiento</Typography>
+        <Typography variant="h4" gutterBottom>Gestión de Movimientos</Typography>
         <FormControl fullWidth margin="normal">
           <InputLabel id="codigoPR-label">Código PR</InputLabel>
           <Select
