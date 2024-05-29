@@ -27,7 +27,6 @@ function ProductID() {
   const [numeroInicial, setNumeroInicial] = useState('');
   const [cantidadNumerar, setCantidadNumerar] = useState('');
   const [inventarioIDs, setInventarioIDs] = useState([]);
-  const [depositos, setDepositos] = useState([]);
   const [selectedDeposito, setSelectedDeposito] = useState('');
   const [editMode, setEditMode] = useState({}); // Estado para controlar el modo de edición
 
@@ -39,21 +38,7 @@ function ProductID() {
       }
     };
 
-    const fetchDepositos = async () => {
-      try {
-        const depositosQuerySnapshot = await getDocs(collection(db, "depositos"));
-        const depositosData = depositosQuerySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        setDepositos(depositosData);
-      } catch (error) {
-        console.error("Error al cargar los depósitos:", error);
-      }
-    };
-
     fetchInventoryIDs();
-    fetchDepositos();
   }, []);
 
   useEffect(() => {

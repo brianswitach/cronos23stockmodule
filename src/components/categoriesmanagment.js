@@ -15,12 +15,12 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Box
+  Box,
 } from '@mui/material';
-import db from '../firebaseConfig';
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import db from '../firebaseConfig';
 
-function Categorias() {
+function CategoriesManagement() {
   const [categorias, setCategorias] = useState([]);
   const [nombre, setNombre] = useState('');
   const [editNombre, setEditNombre] = useState('');
@@ -29,9 +29,9 @@ function Categorias() {
 
   const fetchCategorias = useCallback(async () => {
     const categoriasSnapshot = await getDocs(collection(db, 'categorias'));
-    const categoriasData = categoriasSnapshot.docs.map(doc => ({
+    const categoriasData = categoriasSnapshot.docs.map((doc) => ({
       id: doc.id,
-      ...doc.data()
+      ...doc.data(),
     }));
     setCategorias(categoriasData);
   }, []);
@@ -82,7 +82,9 @@ function Categorias() {
   return (
     <Grid container spacing={2}>
       <Grid item xs={12}>
-        <Typography variant="h4" gutterBottom>Gestión de Categorías</Typography>
+        <Typography variant="h4" gutterBottom>
+          Gestión de Categorías
+        </Typography>
         <Box display="flex" alignItems="center">
           <TextField
             label="Nombre"
@@ -92,11 +94,16 @@ function Categorias() {
             margin="normal"
             fullWidth
           />
-          <Button variant="contained" color="primary" onClick={handleSaveCategoria} style={{ marginLeft: 8, height: '100%' }}>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleSaveCategoria}
+            sx={{ marginLeft: 2, height: '100%' }}
+          >
             Guardar
           </Button>
         </Box>
-        <TableContainer component={Paper} style={{ marginTop: 16 }}>
+        <TableContainer component={Paper} sx={{ marginTop: 2 }}>
           <Table sx={{ minWidth: 650 }} aria-label="simple table">
             <TableHead>
               <TableRow>
@@ -109,8 +116,21 @@ function Categorias() {
                 <TableRow key={categoria.id}>
                   <TableCell>{categoria.nombre}</TableCell>
                   <TableCell>
-                    <Button variant="contained" color="primary" onClick={() => handleEditCategoria(categoria)}>Editar</Button>
-                    <Button variant="contained" color="secondary" onClick={() => handleDeleteCategoria(categoria.id)} style={{ marginLeft: 8 }}>Eliminar</Button>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={() => handleEditCategoria(categoria)}
+                    >
+                      Editar
+                    </Button>
+                    <Button
+                      variant="contained"
+                      color="secondary"
+                      onClick={() => handleDeleteCategoria(categoria.id)}
+                      sx={{ marginLeft: 2 }}
+                    >
+                      Eliminar
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -144,4 +164,4 @@ function Categorias() {
   );
 }
 
-export default Categorias;
+export default CategoriesManagement;

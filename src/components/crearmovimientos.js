@@ -165,17 +165,17 @@ function CrearMovimientos() {
           fullWidth
           margin="normal"
         />
-        <Button variant="contained" color="primary" onClick={handleSubmit} style={{ marginTop: 16 }}>
+        <Button variant="contained" color="primary" onClick={handleSubmit} sx={{ marginTop: 2 }}>
           Guardar
         </Button>
       </Grid>
 
       <Grid item xs={12}>
-        <Divider style={{ margin: '20px 0' }} />
+        <Divider sx={{ marginY: 2 }} />
         <Typography variant="h4" gutterBottom>Movimientos:</Typography>
         <Button variant="contained" onClick={() => sortMovimientos('asc')}>Ordenar por Fecha Ascendente</Button>
-        <Button variant="contained" onClick={() => sortMovimientos('desc')} style={{ marginLeft: 8 }}>Ordenar por Fecha Descendente</Button>
-        <TableContainer component={Paper} style={{ marginTop: 16 }}>
+        <Button variant="contained" onClick={() => sortMovimientos('desc')} sx={{ marginLeft: 2 }}>Ordenar por Fecha Descendente</Button>
+        <TableContainer component={Paper} sx={{ marginTop: 2 }}>
           <Table sx={{ minWidth: 650 }} aria-label="simple table">
             <TableHead>
               <TableRow>

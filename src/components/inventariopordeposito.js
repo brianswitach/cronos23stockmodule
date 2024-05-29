@@ -58,8 +58,8 @@ function InventarioPorDeposito() {
         <Typography variant="h4" gutterBottom>Inventario por Depósito</Typography>
         {Object.keys(inventarioPorDeposito).map((deposito) => (
           <React.Fragment key={deposito}>
-            <Typography variant="h6">{deposito}</Typography>
-            <TableContainer component={Paper}>
+            <Typography variant="h6" sx={{ mt: 2 }}>{deposito}</Typography>
+            <TableContainer component={Paper} sx={{ mt: 1 }}>
               <Table sx={{ minWidth: 650 }} aria-label="inventario por deposito">
                 <TableHead>
                   <TableRow>
@@ -89,5 +89,3 @@ function InventarioPorDeposito() {
 }
 
 export default InventarioPorDeposito;
-
-

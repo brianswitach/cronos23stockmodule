@@ -50,7 +50,7 @@ function InventarioGeneral() {
     <Grid container spacing={2}>
       <Grid item xs={12}>
         <Typography variant="h4" gutterBottom>Inventario General</Typography>
-        <Divider style={{ margin: '20px 0' }} />
+        <Divider sx={{ my: 2 }} />
         <TableContainer component={Paper}>
           <Table sx={{ minWidth: 650 }} aria-label="simple table">
             <TableHead>

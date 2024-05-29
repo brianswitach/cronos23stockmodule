@@ -81,7 +81,7 @@ function DepositsManagement() {
                     onChange={handleInputChange}
                 />
                 <Button variant="contained" color="primary" onClick={handleAddDeposito}>Agregar Depósito</Button>
-                <TableContainer component={Paper} style={{ marginTop: 20 }}>
+                <TableContainer component={Paper} sx={{ marginTop: 2 }}>
                     <Table>
                         <TableHead>
                             <TableRow>
@@ -96,10 +96,9 @@ function DepositsManagement() {
                                     <TableCell>{deposito.codigoDP}</TableCell>
                                     <TableCell>{deposito.nombre}</TableCell>
                                     <TableCell>
-    <Button variant="contained" color="primary" onClick={() => handleEdit(deposito)} sx={{ mr: 1 }}>Editar</Button> {/* Margen a la derecha */}
-    <Button variant="contained" color="secondary" onClick={() => handleDelete(deposito.id)}>Eliminar</Button>
-</TableCell>
-
+                                        <Button variant="contained" color="primary" onClick={() => handleEdit(deposito)} sx={{ mr: 1 }}>Editar</Button>
+                                        <Button variant="contained" color="secondary" onClick={() => handleDelete(deposito.id)}>Eliminar</Button>
+                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
