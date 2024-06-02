@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Typography, Button, TextField, Grid, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Dialog, DialogActions, DialogContent, DialogTitle, Box, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import db from '../firebaseConfig';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, limit } from 'firebase/firestore';
 
 function ProductsManagement() {
     const [showForm, setShowForm] = useState(false);
@@ -39,6 +39,14 @@ function ProductsManagement() {
         fetchCategorias();
     }, []);
 
+    const generateAutoIncrementedCode = async () => {
+        const q = query(collection(db, "clientes"), orderBy("codigo", "desc"), limit(1));
+        const querySnapshot = await getDocs(q);
+        const lastDoc = querySnapshot.docs[0];
+        const lastCode = lastDoc ? parseInt(lastDoc.data().codigo, 10) : 0;
+        return (lastCode + 1).toString().padStart(5, '0'); // Rellena con ceros hasta tener 5 dígitos
+    };
+
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setClientData(prevState => ({
@@ -48,12 +56,14 @@ function ProductsManagement() {
     };
 
     const handleSaveClient = async () => {
-        if (!clientData.codigo || !clientData.nombre) {
-            alert("Por favor, complete al menos el código y el nombre.");
+        if (!clientData.nombre || !clientData.categoria) {
+            alert("Por favor, complete al menos el nombre y la categoría.");
             return;
         }
+        const autoCode = await generateAutoIncrementedCode();
         await addDoc(collection(db, "clientes"), {
-            ...clientData
+            ...clientData,
+            codigo: autoCode
         });
         setShowForm(false);
         setClientData({ // Reset fields after saving
@@ -62,7 +72,7 @@ function ProductsManagement() {
             categoria: '',
             acciones: ''
         });
-        alert("Cliente guardado con éxito");
+        alert("Producto guardado con éxito");
         fetchUsuarios();
     };
 
@@ -105,7 +115,6 @@ function ProductsManagement() {
                 </Button>
                 {showForm && (
                     <Box mt={2} width="100%">
-                        <TextField name="codigo" value={clientData.codigo} onChange={handleInputChange} label="Código" variant="outlined" fullWidth margin="normal" />
                         <TextField name="nombre" value={clientData.nombre} onChange={handleInputChange} label="Nombre" variant="outlined" fullWidth margin="normal" />
                         <FormControl fullWidth margin="normal">
                             <InputLabel id="categoria-label">Categoría</InputLabel>
@@ -166,6 +175,7 @@ function ProductsManagement() {
                             name="codigo"
                             value={currentUser.codigo}
                             onChange={handleChange}
+                            disabled
                         />
                         <TextField
                             margin="dense"

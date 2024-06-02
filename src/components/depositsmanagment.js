@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Typography, Button, TextField, Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Dialog, DialogActions, DialogContent, DialogTitle, Paper } from '@mui/material';
 import db from '../firebaseConfig';
-import { collection, getDocs, doc, updateDoc, deleteDoc, addDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, deleteDoc, addDoc, query, orderBy, limit } from 'firebase/firestore';
 
 function DepositsManagement() {
     const [depositos, setDepositos] = useState([]);
@@ -21,17 +21,29 @@ function DepositsManagement() {
         setDepositos(depositsList);
     };
 
+    const generateAutoIncrementedCode = async () => {
+        const q = query(collection(db, "depositos"), orderBy("codigoDP", "desc"), limit(1));
+        const querySnapshot = await getDocs(q);
+        const lastDoc = querySnapshot.docs[0];
+        const lastCode = lastDoc ? parseInt(lastDoc.data().codigoDP, 10) : 0;
+        return (lastCode + 1).toString().padStart(5, '0'); // Rellena con ceros hasta tener 5 dígitos
+    };
+
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setCurrentDeposito({ ...currentDeposito, [name]: value });
     };
 
     const handleAddDeposito = async () => {
-        if (!currentDeposito.codigoDP || !currentDeposito.nombre) {
-            alert("Por favor, complete todos los campos.");
+        if (!currentDeposito.nombre) {
+            alert("Por favor, complete el nombre.");
             return;
         }
-        await addDoc(collection(db, "depositos"), currentDeposito);
+        const autoCode = await generateAutoIncrementedCode();
+        await addDoc(collection(db, "depositos"), {
+            ...currentDeposito,
+            codigoDP: autoCode
+        });
         fetchDepositos();
         setCurrentDeposito({ codigoDP: '', nombre: '' });  // Reset fields
     };
@@ -62,15 +74,6 @@ function DepositsManagement() {
         <Grid container spacing={2}>
             <Grid item xs={12}>
                 <Typography variant="h4">Gestión de Depósitos</Typography>
-                <TextField
-                    label="Código DP"
-                    variant="outlined"
-                    fullWidth
-                    margin="normal"
-                    name="codigoDP"
-                    value={currentDeposito.codigoDP}
-                    onChange={handleInputChange}
-                />
                 <TextField
                     label="Nombre"
                     variant="outlined"
@@ -117,6 +120,7 @@ function DepositsManagement() {
                             name="codigoDP"
                             value={currentDeposito.codigoDP}
                             onChange={handleInputChange}
+                            disabled
                         />
                         <TextField
                             margin="dense"
