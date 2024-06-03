@@ -29,6 +29,7 @@ function ProductID() {
   const [inventarioIDs, setInventarioIDs] = useState([]);
   const [selectedDeposito, setSelectedDeposito] = useState('');
   const [editMode, setEditMode] = useState({}); // Estado para controlar el modo de edición
+  const [depositos, setDepositos] = useState([]); // Estado para los depósitos
 
   useEffect(() => {
     const fetchInventoryIDs = async () => {
@@ -55,8 +56,22 @@ function ProductID() {
         console.error("Error al cargar los productos:", error);
       }
     };
-  
+
+    const fetchDepositos = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "depositos"));
+        const loadedDepositos = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setDepositos(loadedDepositos);
+      } catch (error) {
+        console.error("Error al cargar los depósitos:", error);
+      }
+    };
+
     fetchProductos();
+    fetchDepositos(); // Cargar los depósitos
   }, []);
 
   const handleProcesar = async () => {
@@ -77,6 +92,7 @@ function ProductID() {
       await addDoc(collection(db, "ids"), idData);
       alert("ID guardado con éxito.");
       await updateInventarioIDs(selectedProducto, Number(numeroInicial), Number(cantidadNumerar), selectedDeposito);
+      await registrarMovimientos(selectedProducto, Number(cantidadNumerar));
     } catch (error) {
       console.error("Error al guardar el ID:", error);
       alert("Error al guardar el ID.");
@@ -92,7 +108,7 @@ function ProductID() {
         codigoPR: productoData.codigo,
         nombre: productoData.nombre,
         categoria: productoData.categoria,
-        deposito: selectedDeposito, 
+        deposito: selectedDeposito,
         id: numeroInicial + index
       }));
 
@@ -102,14 +118,32 @@ function ProductID() {
     }
   };
 
+  const registrarMovimientos = async (productoNombre, cantidadNumerar) => {
+    const productoQuery = query(collection(db, "clientes"), where("nombre", "==", productoNombre));
+    const productoSnapshot = await getDocs(productoQuery);
+    if (!productoSnapshot.empty) {
+      const productoData = productoSnapshot.docs[0].data();
+      const movimientos = Array.from({ length: cantidadNumerar }, (_, index) => ({
+        codigoPR: productoData.codigo,
+        operacion: 'Alta',
+        cantidad: 1,
+        fechaHora: new Date().toISOString()
+      }));
+
+      for (const movimiento of movimientos) {
+        await addDoc(collection(db, "movimientos"), movimiento);
+      }
+    }
+  };
+
   const saveToDepositosextra = async (nuevosIDs) => {
     try {
-      const depositosExtraCollection = collection(db, "depositosextra");
+      const depositosExtraCollection = collection(db, "depositos");
       for (const id of nuevosIDs) {
         await addDoc(depositosExtraCollection, id);
       }
     } catch (error) {
-      console.error("Error al guardar en depositosextra:", error);
+      console.error("Error al guardar en depositos:", error);
     }
   };
 
@@ -126,7 +160,7 @@ function ProductID() {
 
   const updateDepositosextra = async (nuevosInventarioIDs) => {
     try {
-      const depositosExtraCollection = collection(db, "depositosextra");
+      const depositosExtraCollection = collection(db, "depositos");
       const depositosExtraSnapshot = await getDocs(depositosExtraCollection);
       const batch = writeBatch(db);
       depositosExtraSnapshot.docs.forEach(doc => {
@@ -138,7 +172,7 @@ function ProductID() {
         await addDoc(depositosExtraCollection, id);
       }
     } catch (error) {
-      console.error("Error al actualizar depositosextra:", error);
+      console.error("Error al actualizar depositos:", error);
     }
   };
 
@@ -154,7 +188,7 @@ function ProductID() {
 
   const handleSave = async (index) => {
     const item = inventarioIDs[index];
-    const docRef = doc(db, "depositosextra", item.id.toString());
+    const docRef = doc(db, "depositos", item.id.toString());
 
     try {
       const docSnap = await getDoc(docRef);
@@ -165,7 +199,7 @@ function ProductID() {
         alert("Movimiento realizado con éxito.");
       } else {
         // Si el documento no existe, crearlo
-        await addDoc(collection(db, "depositosextra"), {
+        await addDoc(collection(db, "depositos"), {
           ...item,
           deposito: item.deposito
         });
@@ -225,8 +259,11 @@ function ProductID() {
               label="Depósito"
               onChange={handleSelectDeposito}
             >
-              <MenuItem value="Depósito Central por ID's">Depósito Central por ID's</MenuItem>
-              <MenuItem value="Depósito Interno por ID's">Depósito Interno por ID's</MenuItem>
+              {depositos.map((deposito) => (
+                <MenuItem key={deposito.id} value={deposito.nombre}>
+                  {deposito.nombre}
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
           <Button variant="contained" color="primary" onClick={handleProcesar} sx={{ margin: 1 }}>
@@ -235,110 +272,6 @@ function ProductID() {
           <Button variant="contained" color="secondary" sx={{ margin: 1 }}>
             Cancelar
           </Button>
-          <Divider sx={{ my: 2 }} />
-          <Typography variant="h6">Depósito Central por ID's:</Typography>
-          <TableContainer component={Paper}>
-            <Table sx={{ minWidth: 650 }} aria-label="deposito-central-table">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Código PR</TableCell>
-                  <TableCell>Nombre</TableCell>
-                  <TableCell>Categoría</TableCell>
-                  <TableCell>Depósito</TableCell>
-                  <TableCell>ID</TableCell>
-                  <TableCell>Acciones</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {inventarioIDs.map((item, index) => (
-                  item.deposito === "Depósito Central por ID's" &&
-                  <TableRow key={index}>
-                    <TableCell>{item.codigoPR}</TableCell>
-                    <TableCell>{item.nombre}</TableCell>
-                    <TableCell>{item.categoria}</TableCell>
-                    <TableCell>{item.deposito}</TableCell>
-                    <TableCell>{item.id}</TableCell>
-                    <TableCell>
-                      <Button variant="outlined" color="secondary" onClick={() => eliminarFila(index)}>
-                        Eliminar
-                      </Button>
-                      {!editMode[index] && (
-                        <Button variant="outlined" color="primary" onClick={() => toggleEditMode(index)}>
-                          Mover
-                        </Button>
-                      )}
-                      {editMode[index] && (
-                        <FormControl fullWidth margin="normal">
-                          <Select
-                            value={item.deposito}
-                            onChange={e => handleDepositoChange(index, e.target.value)}
-                          >
-                            <MenuItem value="Depósito Central por ID's">Depósito Central por ID's</MenuItem>
-                            <MenuItem value="Depósito Interno por ID's">Depósito Interno por ID's</MenuItem>
-                          </Select>
-                          <Button variant="contained" color="primary" onClick={() => handleSave(index)}>
-                            Guardar
-                          </Button>
-                        </FormControl>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-          <Divider sx={{ my: 2 }} />
-          <Typography variant="h6">Depósito Interno por ID's:</Typography>
-          <TableContainer component={Paper}>
-            <Table sx={{ minWidth: 650 }} aria-label="deposito-interno-table">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Código PR</TableCell>
-                  <TableCell>Nombre</TableCell>
-                  <TableCell>Categoría</TableCell>
-                  <TableCell>Depósito</TableCell>
-                  <TableCell>ID</TableCell>
-                  <TableCell>Acciones</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {inventarioIDs.map((item, index) => (
-                  item.deposito === "Depósito Interno por ID's" &&
-                  <TableRow key={index}>
-                    <TableCell>{item.codigoPR}</TableCell>
-                    <TableCell>{item.nombre}</TableCell>
-                    <TableCell>{item.categoria}</TableCell>
-                    <TableCell>{item.deposito}</TableCell>
-                    <TableCell>{item.id}</TableCell>
-                    <TableCell>
-                      <Button variant="outlined" color="secondary" onClick={() => eliminarFila(index)}>
-                        Eliminar
-                      </Button>
-                      {!editMode[index] && (
-                        <Button variant="outlined" color="primary" onClick={() => toggleEditMode(index)}>
-                          Mover
-                        </Button>
-                      )}
-                      {editMode[index] && (
-                        <FormControl fullWidth margin="normal">
-                          <Select
-                            value={item.deposito}
-                            onChange={e => handleDepositoChange(index, e.target.value)}
-                          >
-                            <MenuItem value="Depósito Central por ID's">Depósito Central por ID's</MenuItem>
-                            <MenuItem value="Depósito Interno por ID's">Depósito Interno por ID's</MenuItem>
-                          </Select>
-                          <Button variant="contained" color="primary" onClick={() => handleSave(index)}>
-                            Guardar
-                          </Button>
-                        </FormControl>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
           <Divider sx={{ my: 2 }} />
           <Typography variant="h6">Inventario por IDs:</Typography>
           <TableContainer component={Paper}>
@@ -365,8 +298,11 @@ function ProductID() {
                           value={item.deposito}
                           onChange={e => handleDepositoChange(index, e.target.value)}
                         >
-                          <MenuItem value="Depósito Central por ID's">Depósito Central por ID's</MenuItem>
-                          <MenuItem value="Depósito Interno por ID's">Depósito Interno por ID's</MenuItem>
+                          {depositos.map((deposito) => (
+                            <MenuItem key={deposito.id} value={deposito.nombre}>
+                              {deposito.nombre}
+                            </MenuItem>
+                          ))}
                         </Select>
                       ) : (
                         item.deposito

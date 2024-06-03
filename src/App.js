@@ -4,14 +4,11 @@ import { Drawer, List, ListItem, ListItemIcon, ListItemText, Divider, Typography
 import InventoryIcon from '@mui/icons-material/Inventory';
 import CategoryIcon from '@mui/icons-material/Category';
 import StoreIcon from '@mui/icons-material/Store';
-import TransferWithinAStationIcon from '@mui/icons-material/TransferWithinAStation';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import ProductsManagement from './components/productsmanagment';
 import CategoriesManagement from './components/categoriesmanagment';
 import DepositsManagement from './components/depositsmanagment';
-import TransfersManagement from './components/transfersmanagment';
 import CrearMovimientos from './components/crearmovimientos';
-import InventarioPorDeposito from './components/inventariopordeposito';
 import ProductID from './components/ProductID';
 import InventarioGeneral from './components/inventariogeneral';
 import Categorias from './components/categorias'; // Importa el nuevo componente
@@ -99,24 +96,13 @@ function App() {
                 </ListItem>
               </List>
               <Divider />
-              <List>
-                <Typography variant="h6" sx={{ padding: 2 }}>Operaciones</Typography>
-                <ListItem button component={Link} to="/transferencias-depositos">
-                  <ListItemIcon><TransferWithinAStationIcon /></ListItemIcon>
-                  <ListItemText primary="Transferencias entre Depósitos" />
-                </ListItem>
-              </List>
               <Divider />
               <List>
                 <Typography variant="h6" sx={{ padding: 2 }}>Reportes</Typography>
                 <ListItem button component={Link} to="/inventario-general">
                   <ListItemIcon><AssignmentIcon /></ListItemIcon>
                   <ListItemText primary="Inventario General" />
-                </ListItem>
-                <ListItem button component={Link} to="/inventario-por-deposito">
-                  <ListItemIcon><AssignmentIcon /></ListItemIcon>
-                  <ListItemText primary="Inventario por Depósito" />
-                </ListItem>
+                </ListItem> 
               </List>
             </Box>
           </Drawer>
@@ -126,9 +112,7 @@ function App() {
               <Route path="/gestion-productos" element={<ProductsManagement />} />
               <Route path="/gestion-categorias" element={<CategoriesManagement />} />
               <Route path="/gestion-depositos" element={<DepositsManagement />} />
-              <Route path="/transferencias-depositos" element={<TransfersManagement />} />
               <Route path="/crear-movimientos" element={<CrearMovimientos />} />
-              <Route path="/inventario-por-deposito" element={<InventarioPorDeposito />} />
               <Route path="/productid" element={<ProductID />} />
               <Route path="/inventario-general" element={<InventarioGeneral />} />
               <Route path="/categorias" element={<Categorias />} />

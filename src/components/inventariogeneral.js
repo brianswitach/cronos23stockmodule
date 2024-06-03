@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Typography, Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Divider } from '@mui/material';
+import { Typography, Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Divider, Button } from '@mui/material';
 import db from '../firebaseConfig';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, deleteDoc, doc, query, where, writeBatch } from 'firebase/firestore';
 
 function InventarioGeneral() {
   const [inventario, setInventario] = useState([]);
@@ -46,6 +46,38 @@ function InventarioGeneral() {
     setInventario(Object.values(inventarioTemp));
   };
 
+  const eliminarProducto = async (codigoPR) => {
+    try {
+      const productoQuery = query(collection(db, "clientes"), where("codigo", "==", codigoPR));
+      const productoSnapshot = await getDocs(productoQuery);
+
+      if (!productoSnapshot.empty) {
+        const batch = writeBatch(db);
+
+        productoSnapshot.docs.forEach((doc) => {
+          batch.delete(doc.ref);
+        });
+
+        const movimientosQuery = query(collection(db, "movimientos"), where("codigoPR", "==", codigoPR));
+        const movimientosSnapshot = await getDocs(movimientosQuery);
+
+        movimientosSnapshot.docs.forEach((doc) => {
+          batch.delete(doc.ref);
+        });
+
+        await batch.commit();
+
+        fetchDatos();
+        alert("Producto y sus movimientos eliminados con éxito");
+      } else {
+        alert("Producto no encontrado.");
+      }
+    } catch (error) {
+      console.error("Error al eliminar el producto:", error);
+      alert("Error al eliminar el producto.");
+    }
+  };
+
   return (
     <Grid container spacing={2}>
       <Grid item xs={12}>
@@ -59,6 +91,7 @@ function InventarioGeneral() {
                 <TableCell>Nombre</TableCell>
                 <TableCell>Categoría</TableCell>
                 <TableCell>Cantidad</TableCell>
+                <TableCell>Acciones</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -68,6 +101,15 @@ function InventarioGeneral() {
                   <TableCell>{inv.nombre}</TableCell>
                   <TableCell>{inv.categoria}</TableCell>
                   <TableCell>{inv.cantidad}</TableCell>
+                  <TableCell>
+                    <Button
+                      variant="contained"
+                      color="secondary"
+                      onClick={() => eliminarProducto(inv.codigoPR)}
+                    >
+                      Eliminar
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

@@ -8,10 +8,11 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper
+  Paper,
+  Button
 } from '@mui/material';
 import db from '../firebaseConfig';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, doc, query, where, writeBatch } from 'firebase/firestore';
 
 function InventarioPorDeposito() {
   const [inventarioPorDeposito, setInventarioPorDeposito] = useState({});
@@ -52,6 +53,51 @@ function InventarioPorDeposito() {
     fetchData();
   }, []);
 
+  const handleDelete = async (deposito, codigoPR) => {
+    try {
+      // Realizar una consulta para filtrar los documentos a eliminar
+      const movimientosQuery = query(
+        collection(db, "movimientos"),
+        where("deposito", "==", deposito),
+        where("codigoPR", "==", codigoPR)
+      );
+
+      const movimientosSnapshot = await getDocs(movimientosQuery);
+
+      const batch = writeBatch(db);
+      movimientosSnapshot.docs.forEach((docSnapshot) => {
+        batch.delete(doc(db, "movimientos", docSnapshot.id));
+      });
+
+      // Eliminar el documento de la colección "clientes"
+      const clientesQuery = query(
+        collection(db, "clientes"),
+        where("codigo", "==", codigoPR)
+      );
+      const clientesSnapshot = await getDocs(clientesQuery);
+      clientesSnapshot.docs.forEach((docSnapshot) => {
+        batch.delete(doc(db, "clientes", docSnapshot.id));
+      });
+
+      await batch.commit();
+
+      // Actualizar el estado local después de la eliminación
+      setInventarioPorDeposito((prevInventario) => {
+        const newInventario = { ...prevInventario };
+        delete newInventario[deposito][codigoPR];
+        if (Object.keys(newInventario[deposito]).length === 0) {
+          delete newInventario[deposito];
+        }
+        return newInventario;
+      });
+
+      alert("Producto eliminado con éxito.");
+    } catch (error) {
+      console.error("Error eliminando el documento: ", error);
+      alert("Error eliminando el producto.");
+    }
+  };
+
   return (
     <Grid container spacing={2}>
       <Grid item xs={12}>
@@ -67,6 +113,7 @@ function InventarioPorDeposito() {
                     <TableCell>Nombre</TableCell>
                     <TableCell>Categoría</TableCell>
                     <TableCell>Cantidad</TableCell>
+                    <TableCell>Acciones</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -76,6 +123,15 @@ function InventarioPorDeposito() {
                       <TableCell>{data.nombre || 'No disponible'}</TableCell>
                       <TableCell>{data.categoria || 'No disponible'}</TableCell>
                       <TableCell>{data.cantidad}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="contained"
+                          color="secondary"
+                          onClick={() => handleDelete(deposito, codigoPR)}
+                        >
+                          Eliminar
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
