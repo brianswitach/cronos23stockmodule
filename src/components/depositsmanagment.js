@@ -17,7 +17,7 @@ function DepositsManagement() {
         const depositsList = querySnapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
-        }));
+        })).filter(deposito => deposito.codigoDP !== undefined);
         setDepositos(depositsList);
     };
 
