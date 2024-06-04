@@ -28,8 +28,8 @@ function ProductID() {
   const [cantidadNumerar, setCantidadNumerar] = useState('');
   const [inventarioIDs, setInventarioIDs] = useState([]);
   const [selectedDeposito, setSelectedDeposito] = useState('');
-  const [editMode, setEditMode] = useState({}); // Estado para controlar el modo de edición
-  const [depositos, setDepositos] = useState([]); // Estado para los depósitos
+  const [editMode, setEditMode] = useState({});
+  const [depositos, setDepositos] = useState([]);
 
   useEffect(() => {
     const fetchInventoryIDs = async () => {
@@ -63,7 +63,7 @@ function ProductID() {
         const loadedDepositos = querySnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
-        }));
+        })).filter(deposito => deposito.codigoDP !== undefined);
         setDepositos(loadedDepositos);
       } catch (error) {
         console.error("Error al cargar los depósitos:", error);
@@ -71,7 +71,7 @@ function ProductID() {
     };
 
     fetchProductos();
-    fetchDepositos(); // Cargar los depósitos
+    fetchDepositos();
   }, []);
 
   const handleProcesar = async () => {
