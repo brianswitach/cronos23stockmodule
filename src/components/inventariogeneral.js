@@ -7,22 +7,24 @@ function InventarioGeneral() {
   const [inventario, setInventario] = useState([]);
 
   const fetchDatos = useCallback(async () => {
-    const [usuariosSnapshot, movimientosSnapshot] = await Promise.all([
+    const [clientesSnapshot, movimientosSnapshot, idsSnapshot] = await Promise.all([
       getDocs(collection(db, "clientes")),
-      getDocs(collection(db, "movimientos"))
+      getDocs(collection(db, "movimientos")),
+      getDocs(collection(db, "ids"))
     ]);
 
-    const clientesData = usuariosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const clientesData = clientesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     const movimientosData = movimientosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const idsData = idsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-    calcularInventario(clientesData, movimientosData);
+    calcularInventario(clientesData, movimientosData, idsData);
   }, []);
 
   useEffect(() => {
     fetchDatos();
   }, [fetchDatos]);
 
-  const calcularInventario = (clientesData, movimientosData) => {
+  const calcularInventario = (clientesData, movimientosData, idsData) => {
     let inventarioTemp = clientesData.reduce((acc, cliente) => {
       acc[cliente.codigo] = {
         codigoPR: cliente.codigo,
@@ -33,6 +35,7 @@ function InventarioGeneral() {
       return acc;
     }, {});
 
+    // Contar productos en movimientos
     movimientosData.forEach((mov) => {
       if (inventarioTemp[mov.codigoPR]) {
         if (mov.operacion === 'Alta') {
@@ -42,6 +45,19 @@ function InventarioGeneral() {
         }
       }
     });
+
+    // Contar IDs asignados y restar de los movimientos
+    const idsCount = idsData.reduce((acc, id) => {
+      if (!acc[id.producto]) acc[id.producto] = 0;
+      acc[id.producto]++;
+      return acc;
+    }, {});
+
+    for (let codigoPR in idsCount) {
+      if (inventarioTemp[codigoPR]) {
+        inventarioTemp[codigoPR].cantidad -= idsCount[codigoPR];
+      }
+    }
 
     setInventario(Object.values(inventarioTemp));
   };
@@ -65,10 +81,17 @@ function InventarioGeneral() {
           batch.delete(doc.ref);
         });
 
+        const idsQuery = query(collection(db, "ids"), where("producto", "==", codigoPR));
+        const idsSnapshot = await getDocs(idsQuery);
+
+        idsSnapshot.docs.forEach((doc) => {
+          batch.delete(doc.ref);
+        });
+
         await batch.commit();
 
         fetchDatos();
-        alert("Producto y sus movimientos eliminados con éxito");
+        alert("Producto y sus movimientos e IDs eliminados con éxito");
       } else {
         alert("Producto no encontrado.");
       }
