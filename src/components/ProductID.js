@@ -92,7 +92,6 @@ function ProductID() {
       await addDoc(collection(db, "ids"), idData);
       alert("ID guardado con éxito.");
       await updateInventarioIDs(selectedProducto, Number(numeroInicial), Number(cantidadNumerar), selectedDeposito);
-      await registrarMovimientos(selectedProducto, Number(cantidadNumerar));
     } catch (error) {
       console.error("Error al guardar el ID:", error);
       alert("Error al guardar el ID.");
@@ -115,24 +114,6 @@ function ProductID() {
       setInventarioIDs(prevInventarioIDs => [...prevInventarioIDs, ...nuevosIDs]);
       localStorage.setItem('inventarioIDs', JSON.stringify([...inventarioIDs, ...nuevosIDs]));
       await saveToDepositosextra(nuevosIDs);
-    }
-  };
-
-  const registrarMovimientos = async (productoNombre, cantidadNumerar) => {
-    const productoQuery = query(collection(db, "clientes"), where("nombre", "==", productoNombre));
-    const productoSnapshot = await getDocs(productoQuery);
-    if (!productoSnapshot.empty) {
-      const productoData = productoSnapshot.docs[0].data();
-      const movimientos = Array.from({ length: cantidadNumerar }, (_, index) => ({
-        codigoPR: productoData.codigo,
-        operacion: 'Alta',
-        cantidad: 1,
-        fechaHora: new Date().toISOString()
-      }));
-
-      for (const movimiento of movimientos) {
-        await addDoc(collection(db, "movimientos"), movimiento);
-      }
     }
   };
 
