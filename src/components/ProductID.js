@@ -18,7 +18,7 @@ import {
   Paper,
   Divider
 } from '@mui/material';
-import { collection, getDocs, addDoc, query, where, updateDoc, doc, getDoc, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, addDoc, query, where, updateDoc, doc, deleteDoc, getDoc } from 'firebase/firestore';
 import db from '../firebaseConfig';
 
 function ProductID() {
@@ -138,12 +138,12 @@ function ProductID() {
 
   const saveToDepositosextra = async (nuevosIDs) => {
     try {
-      const depositosExtraCollection = collection(db, "depositos");
+      const depositosExtraCollection = collection(db, "depositosextra");
       for (const id of nuevosIDs) {
         await addDoc(depositosExtraCollection, id);
       }
     } catch (error) {
-      console.error("Error al guardar en depositos:", error);
+      console.error("Error al guardar en depositosextra:", error);
     }
   };
 
@@ -152,27 +152,19 @@ function ProductID() {
   };
 
   const eliminarFila = async (index) => {
-    const nuevosInventarioIDs = inventarioIDs.filter((item, idx) => idx !== index);
+    const fila = inventarioIDs[index];
+    const nuevosInventarioIDs = inventarioIDs.filter((_, idx) => idx !== index);
     setInventarioIDs(nuevosInventarioIDs);
     localStorage.setItem('inventarioIDs', JSON.stringify(nuevosInventarioIDs));
-    await updateDepositosextra(nuevosInventarioIDs);
-  };
 
-  const updateDepositosextra = async (nuevosInventarioIDs) => {
     try {
-      const depositosExtraCollection = collection(db, "depositos");
-      const depositosExtraSnapshot = await getDocs(depositosExtraCollection);
-      const batch = writeBatch(db);
-      depositosExtraSnapshot.docs.forEach(doc => {
-        batch.delete(doc.ref);
+      const q = query(collection(db, "depositosextra"), where("codigoPR", "==", fila.codigoPR), where("id", "==", fila.id));
+      const querySnapshot = await getDocs(q);
+      querySnapshot.forEach(async (docSnapshot) => {
+        await deleteDoc(doc(db, "depositosextra", docSnapshot.id));
       });
-      await batch.commit();
-
-      for (const id of nuevosInventarioIDs) {
-        await addDoc(depositosExtraCollection, id);
-      }
     } catch (error) {
-      console.error("Error al actualizar depositos:", error);
+      console.error("Error al eliminar la fila de depositosextra:", error);
     }
   };
 
@@ -211,7 +203,6 @@ function ProductID() {
 
     toggleEditMode(index);
     localStorage.setItem('inventarioIDs', JSON.stringify(inventarioIDs));
-    await updateDepositosextra(inventarioIDs);
   };
 
   return (
