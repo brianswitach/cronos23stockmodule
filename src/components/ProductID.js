@@ -63,7 +63,7 @@ function ProductID() {
         const loadedDepositos = querySnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
-        })).filter(deposito => deposito.codigoDP !== undefined);
+        })).filter(deposito => deposito.codigoDP !== undefined); // Filtrando solo los depósitos válidos
         setDepositos(loadedDepositos);
       } catch (error) {
         console.error("Error al cargar los depósitos:", error);
@@ -198,7 +198,6 @@ function ProductID() {
         });
         alert("Movimiento realizado con éxito.");
       } else {
-        // Si el documento no existe, crearlo
         await addDoc(collection(db, "depositos"), {
           ...item,
           deposito: item.deposito
@@ -266,14 +265,13 @@ function ProductID() {
               ))}
             </Select>
           </FormControl>
-          <Button variant="contained" color="primary" onClick={handleProcesar} sx={{ margin: 1 }}>
+          <Button variant="contained" color="primary" onClick={handleProcesar} sx={{ marginTop: 2 }}>
             Procesar
           </Button>
-          <Button variant="contained" color="secondary" sx={{ margin: 1 }}>
-            Cancelar
-          </Button>
-          <Divider sx={{ my: 2 }} />
-          <Typography variant="h6">Inventario por IDs:</Typography>
+        </Grid>
+        <Grid item xs={12}>
+          <Divider sx={{ marginY: 2 }} />
+          <Typography variant="h4" gutterBottom>Inventario por IDs:</Typography>
           <TableContainer component={Paper}>
             <Table sx={{ minWidth: 650 }} aria-label="simple table">
               <TableHead>
@@ -287,42 +285,36 @@ function ProductID() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {inventarioIDs.map((item, index) => (
+                {inventarioIDs.map((inv, index) => (
                   <TableRow key={index}>
-                    <TableCell>{item.codigoPR}</TableCell>
-                    <TableCell>{item.nombre}</TableCell>
-                    <TableCell>{item.categoria}</TableCell>
+                    <TableCell>{inv.codigoPR}</TableCell>
+                    <TableCell>{inv.nombre}</TableCell>
+                    <TableCell>{inv.categoria}</TableCell>
                     <TableCell>
                       {editMode[index] ? (
-                        <Select
-                          value={item.deposito}
+                        <TextField
+                          value={inv.deposito}
                           onChange={e => handleDepositoChange(index, e.target.value)}
-                        >
-                          {depositos.map((deposito) => (
-                            <MenuItem key={deposito.id} value={deposito.nombre}>
-                              {deposito.nombre}
-                            </MenuItem>
-                          ))}
-                        </Select>
+                          fullWidth
+                        />
                       ) : (
-                        item.deposito
+                        inv.deposito
                       )}
                     </TableCell>
-                    <TableCell>{item.id}</TableCell>
+                    <TableCell>{inv.id}</TableCell>
                     <TableCell>
-                      <Button variant="outlined" color="secondary" onClick={() => eliminarFila(index)}>
-                        Eliminar
-                      </Button>
-                      {!editMode[index] && (
-                        <Button variant="outlined" color="primary" onClick={() => toggleEditMode(index)}>
+                      {editMode[index] ? (
+                        <Button onClick={() => handleSave(index)} variant="contained" color="primary" sx={{ mr: 1 }}>
+                          Guardar
+                        </Button>
+                      ) : (
+                        <Button onClick={() => toggleEditMode(index)} variant="contained" color="primary" sx={{ mr: 1 }}>
                           Mover
                         </Button>
                       )}
-                      {editMode[index] && (
-                        <Button variant="contained" color="primary" onClick={() => handleSave(index)}>
-                          Guardar
-                        </Button>
-                      )}
+                      <Button onClick={() => eliminarFila(index)} variant="contained" color="secondary">
+                        Eliminar
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}

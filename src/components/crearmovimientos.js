@@ -44,7 +44,7 @@ function CrearMovimientos() {
     const movimientosData = movimientosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
     setClientes(clientesData);
-    setDepositos(depositosData);
+    setDepositos(depositosData.filter(deposito => deposito.codigoDP)); // Filtrar solo los depósitos válidos
     setMovimientos(movimientosData);
   }, []);
 
