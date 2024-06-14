@@ -12,7 +12,7 @@ import CrearMovimientos from './components/crearmovimientos';
 import ProductID from './components/ProductID';
 import InventarioGeneral from './components/inventariogeneral';
 import Categorias from './components/categorias';
-import Reports from './components/reports'; // Importa el nuevo componente
+import Reports from './components/Reports'; // Importa el nuevo componente
 
 const drawerWidth = 240;
 
