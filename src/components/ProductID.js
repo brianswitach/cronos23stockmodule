@@ -80,51 +80,35 @@ function ProductID() {
       return;
     }
 
-    const idData = {
-      producto: selectedProducto,
-      numeroInicial: Number(numeroInicial),
-      cantidadNumerar: Number(cantidadNumerar),
+    const nuevosIDs = Array.from({ length: Number(cantidadNumerar) }, (_, index) => ({
+      codigoPR: selectedProducto,
+      nombre: productos.find(p => p.nombre === selectedProducto).nombre,
+      categoria: productos.find(p => p.nombre === selectedProducto).categoria,
       deposito: selectedDeposito,
-      fecha: new Date()
-    };
+      id: Number(numeroInicial) + index
+    }));
+
+    const q = query(collection(db, "inventarioporids"), where("nombre", "==", selectedProducto));
+    const querySnapshot = await getDocs(q);
+    const existingIDs = querySnapshot.docs.map(doc => doc.data().id);
+
+    const idsDuplicados = nuevosIDs.some(nuevoID => existingIDs.includes(nuevoID.id));
+
+    if (idsDuplicados) {
+      alert("ID's duplicados");
+      return;
+    }
 
     try {
-      await addDoc(collection(db, "ids"), idData);
+      for (const id of nuevosIDs) {
+        await addDoc(collection(db, "inventarioporids"), id);
+      }
+      setInventarioIDs(prevInventarioIDs => [...prevInventarioIDs, ...nuevosIDs]);
+      localStorage.setItem('inventarioIDs', JSON.stringify([...inventarioIDs, ...nuevosIDs]));
       alert("ID guardado con éxito.");
-      await updateInventarioIDs(selectedProducto, Number(numeroInicial), Number(cantidadNumerar), selectedDeposito);
     } catch (error) {
       console.error("Error al guardar el ID:", error);
       alert("Error al guardar el ID.");
-    }
-  };
-
-  const updateInventarioIDs = async (productoNombre, numeroInicial, cantidadNumerar, selectedDeposito) => {
-    const productoQuery = query(collection(db, "clientes"), where("nombre", "==", productoNombre));
-    const productoSnapshot = await getDocs(productoQuery);
-    if (!productoSnapshot.empty) {
-      const productoData = productoSnapshot.docs[0].data();
-      const nuevosIDs = Array.from({ length: cantidadNumerar }, (_, index) => ({
-        codigoPR: productoData.codigo,
-        nombre: productoData.nombre,
-        categoria: productoData.categoria,
-        deposito: selectedDeposito,
-        id: numeroInicial + index
-      }));
-
-      setInventarioIDs(prevInventarioIDs => [...prevInventarioIDs, ...nuevosIDs]);
-      localStorage.setItem('inventarioIDs', JSON.stringify([...inventarioIDs, ...nuevosIDs]));
-      await saveToDepositosextra(nuevosIDs);
-    }
-  };
-
-  const saveToDepositosextra = async (nuevosIDs) => {
-    try {
-      const depositosExtraCollection = collection(db, "depositosextra");
-      for (const id of nuevosIDs) {
-        await addDoc(depositosExtraCollection, id);
-      }
-    } catch (error) {
-      console.error("Error al guardar en depositosextra:", error);
     }
   };
 
@@ -139,13 +123,13 @@ function ProductID() {
     localStorage.setItem('inventarioIDs', JSON.stringify(nuevosInventarioIDs));
 
     try {
-      const q = query(collection(db, "depositosextra"), where("codigoPR", "==", fila.codigoPR), where("id", "==", fila.id));
+      const q = query(collection(db, "inventarioporids"), where("codigoPR", "==", fila.codigoPR), where("id", "==", fila.id));
       const querySnapshot = await getDocs(q);
       querySnapshot.forEach(async (docSnapshot) => {
-        await deleteDoc(doc(db, "depositosextra", docSnapshot.id));
+        await deleteDoc(doc(db, "inventarioporids", docSnapshot.id));
       });
     } catch (error) {
-      console.error("Error al eliminar la fila de depositosextra:", error);
+      console.error("Error al eliminar la fila de inventarioporids:", error);
     }
   };
 
@@ -161,7 +145,7 @@ function ProductID() {
 
   const handleSave = async (index) => {
     const item = inventarioIDs[index];
-    const docRef = doc(db, "depositos", item.id.toString());
+    const docRef = doc(db, "inventarioporids", item.id.toString());
 
     try {
       const docSnap = await getDoc(docRef);
@@ -171,7 +155,7 @@ function ProductID() {
         });
         alert("Movimiento realizado con éxito.");
       } else {
-        await addDoc(collection(db, "depositos"), {
+        await addDoc(collection(db, "inventarioporids"), {
           ...item,
           deposito: item.deposito
         });
@@ -248,7 +232,6 @@ function ProductID() {
             <Table sx={{ minWidth: 650 }} aria-label="simple table">
               <TableHead>
                 <TableRow>
-                  <TableCell>Código PR</TableCell>
                   <TableCell>Nombre</TableCell>
                   <TableCell>Categoría</TableCell>
                   <TableCell>Depósito</TableCell>
@@ -259,7 +242,6 @@ function ProductID() {
               <TableBody>
                 {inventarioIDs.map((inv, index) => (
                   <TableRow key={index}>
-                    <TableCell>{inv.codigoPR}</TableCell>
                     <TableCell>{inv.nombre}</TableCell>
                     <TableCell>{inv.categoria}</TableCell>
                     <TableCell>

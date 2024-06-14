@@ -22,7 +22,7 @@ import {
   getDocs,
   doc,
   updateDoc,
- deleteDoc,
+  deleteDoc,
   addDoc,
   query,
   orderBy,
@@ -32,7 +32,7 @@ import {
 function DepositsManagement() {
   const [depositos, setDepositos] = useState([]);
   const [open, setOpen] = useState(false);
-  const [currentDeposito, setCurrentDeposito] = useState({ codigoDP: '', nombre: '' });
+  const [currentDeposito, setCurrentDeposito] = useState({ nombre: '' });
 
   useEffect(() => {
     fetchDepositos();
@@ -73,7 +73,7 @@ function DepositsManagement() {
       codigoDP: autoCode
     });
     fetchDepositos();
-    setCurrentDeposito({ codigoDP: '', nombre: '' }); // Reset fields
+    setCurrentDeposito({ nombre: '' }); // Reset fields
   };
 
   const handleEdit = (deposito) => {
@@ -83,7 +83,7 @@ function DepositsManagement() {
 
   const handleClose = () => {
     setOpen(false);
-    setCurrentDeposito({ codigoDP: '', nombre: '' });
+    setCurrentDeposito({ nombre: '' });
   };
 
   const handleUpdate = async () => {

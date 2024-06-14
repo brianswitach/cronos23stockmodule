@@ -6,7 +6,6 @@ import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy,
 function ProductsManagement() {
     const [showForm, setShowForm] = useState(false);
     const [clientData, setClientData] = useState({
-        codigo: '',
         nombre: '',
         categoria: '',
         acciones: ''
@@ -67,7 +66,6 @@ function ProductsManagement() {
         });
         setShowForm(false);
         setClientData({ // Reset fields after saving
-            codigo: '',
             nombre: '',
             categoria: '',
             acciones: ''

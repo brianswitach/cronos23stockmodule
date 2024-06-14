@@ -11,7 +11,8 @@ import DepositsManagement from './components/depositsmanagment';
 import CrearMovimientos from './components/crearmovimientos';
 import ProductID from './components/ProductID';
 import InventarioGeneral from './components/inventariogeneral';
-import Categorias from './components/categorias'; // Importa el nuevo componente
+import Categorias from './components/categorias';
+import Reports from './components/reports'; // Importa el nuevo componente
 
 const drawerWidth = 240;
 
@@ -102,7 +103,11 @@ function App() {
                 <ListItem button component={Link} to="/inventario-general">
                   <ListItemIcon><AssignmentIcon /></ListItemIcon>
                   <ListItemText primary="Inventario General" />
-                </ListItem> 
+                </ListItem>
+                <ListItem button component={Link} to="/reportes">
+                  <ListItemIcon><AssignmentIcon /></ListItemIcon>
+                  <ListItemText primary="Reportes" />
+                </ListItem>
               </List>
             </Box>
           </Drawer>
@@ -116,6 +121,7 @@ function App() {
               <Route path="/productid" element={<ProductID />} />
               <Route path="/inventario-general" element={<InventarioGeneral />} />
               <Route path="/categorias" element={<Categorias />} />
+              <Route path="/reportes" element={<Reports />} />
             </Routes>
           </Box>
         </Box>
