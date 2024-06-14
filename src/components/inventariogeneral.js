@@ -14,10 +14,20 @@ const InventarioGeneral = () => {
 
         querySnapshot.forEach((doc) => {
           const data = doc.data();
-          if (inventario[data.codigoPR]) {
-            inventario[data.codigoPR] = parseInt(inventario[data.codigoPR], 10) + parseInt(data.cantidad, 10);
-          } else {
-            inventario[data.codigoPR] = parseInt(data.cantidad, 10);
+          const cantidad = parseInt(data.cantidad, 10);
+          
+          if (data.operacion === "Alta") {
+            if (inventario[data.codigoPR]) {
+              inventario[data.codigoPR] += cantidad;
+            } else {
+              inventario[data.codigoPR] = cantidad;
+            }
+          } else if (data.operacion === "Baja") {
+            if (inventario[data.codigoPR]) {
+              inventario[data.codigoPR] -= cantidad;
+            } else {
+              inventario[data.codigoPR] = -cantidad;
+            }
           }
         });
 
