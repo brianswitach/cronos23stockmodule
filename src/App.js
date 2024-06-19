@@ -12,7 +12,8 @@ import CrearMovimientos from './components/crearmovimientos';
 import ProductID from './components/ProductID';
 import InventarioGeneral from './components/inventariogeneral';
 import Categorias from './components/categorias';
-import Reports from './components/Reports'; // Importa el nuevo componente
+import Reports from './components/Reports';
+import Reports2 from './components/Reports2'; // Importa el nuevo componente
 
 const drawerWidth = 240;
 
@@ -97,7 +98,6 @@ function App() {
                 </ListItem>
               </List>
               <Divider />
-              <Divider />
               <List>
                 <Typography variant="h6" sx={{ padding: 2 }}>Reportes</Typography>
                 <ListItem button component={Link} to="/inventario-general">
@@ -107,6 +107,10 @@ function App() {
                 <ListItem button component={Link} to="/reportes">
                   <ListItemIcon><AssignmentIcon /></ListItemIcon>
                   <ListItemText primary="Reportes" />
+                </ListItem>
+                <ListItem button component={Link} to="/reportes2">
+                  <ListItemIcon><AssignmentIcon /></ListItemIcon>
+                  <ListItemText primary="Reportes por ID" />
                 </ListItem>
               </List>
             </Box>
@@ -122,6 +126,7 @@ function App() {
               <Route path="/inventario-general" element={<InventarioGeneral />} />
               <Route path="/categorias" element={<Categorias />} />
               <Route path="/reportes" element={<Reports />} />
+              <Route path="/reportes2" element={<Reports2 />} />
             </Routes>
           </Box>
         </Box>
