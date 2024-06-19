@@ -15,26 +15,24 @@ const InventarioGeneral = () => {
         querySnapshot.forEach((doc) => {
           const data = doc.data();
           const cantidad = parseInt(data.cantidad, 10);
-          
+          const key = `${data.codigoPR}-${data.deposito}`;
+
           if (data.operacion === "Alta") {
-            if (inventario[data.codigoPR]) {
-              inventario[data.codigoPR] += cantidad;
+            if (inventario[key]) {
+              inventario[key].cantidad += cantidad;
             } else {
-              inventario[data.codigoPR] = cantidad;
+              inventario[key] = { codigoPR: data.codigoPR, deposito: data.deposito, cantidad };
             }
           } else if (data.operacion === "Baja") {
-            if (inventario[data.codigoPR]) {
-              inventario[data.codigoPR] -= cantidad;
+            if (inventario[key]) {
+              inventario[key].cantidad -= cantidad;
             } else {
-              inventario[data.codigoPR] = -cantidad;
+              inventario[key] = { codigoPR: data.codigoPR, deposito: data.deposito, cantidad: -cantidad };
             }
           }
         });
 
-        const inventarioArray = Object.keys(inventario).map(codigoPR => ({
-          codigoPR,
-          cantidad: inventario[codigoPR],
-        }));
+        const inventarioArray = Object.values(inventario);
 
         setInventarioGeneral(inventarioArray);
       } catch (error) {
@@ -55,14 +53,16 @@ const InventarioGeneral = () => {
           <TableHead>
             <TableRow>
               <TableCell>Código PR</TableCell>
+              <TableCell>Depósito</TableCell>
               <TableCell>Cantidad</TableCell>
               <TableCell>Acciones</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {inventarioGeneral.map((row) => (
-              <TableRow key={row.codigoPR}>
+              <TableRow key={`${row.codigoPR}-${row.deposito}`}>
                 <TableCell>{row.codigoPR}</TableCell>
+                <TableCell>{row.deposito}</TableCell>
                 <TableCell>{row.cantidad}</TableCell>
                 <TableCell>
                   <Button variant="contained" color="secondary">

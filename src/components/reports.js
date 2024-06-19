@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Typography,
-  Button,
   Grid,
   Table,
   TableBody,
@@ -11,104 +10,99 @@ import {
   TableRow,
   Paper,
   Box,
-  Divider
 } from '@mui/material';
 import db from '../firebaseConfig';
 import { collection, getDocs } from 'firebase/firestore';
 
 function Reports() {
-  const [inventario, setInventario] = useState([]);
   const [inventarioPorDeposito, setInventarioPorDeposito] = useState([]);
 
-  useEffect(() => {
-    fetchInventario();
-    fetchInventarioPorDeposito();
-  }, []);
-
-  const fetchInventario = async () => {
-    const querySnapshot = await getDocs(collection(db, 'inventario'));
-    const inventarioData = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    setInventario(inventarioData);
-  };
-
-  const fetchInventarioPorDeposito = async () => {
-    const querySnapshot = await getDocs(collection(db, 'inventario'));
-    const inventarioData = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-
+  const formatInventarioPorDeposito = (inventarioData) => {
     const groupedData = inventarioData.reduce((acc, item) => {
       if (!acc[item.deposito]) {
-        acc[item.deposito] = 0;
+        acc[item.deposito] = {};
       }
-      acc[item.deposito] += item.cantidad;
+      if (!acc[item.deposito][item.codigoPR]) {
+        acc[item.deposito][item.codigoPR] = 0;
+      }
+      acc[item.deposito][item.codigoPR] += item.cantidad;
       return acc;
     }, {});
 
     const formattedData = Object.keys(groupedData).map(deposito => ({
       deposito,
-      cantidad: groupedData[deposito]
+      productos: Object.keys(groupedData[deposito]).map(codigoPR => ({
+        codigoPR,
+        cantidad: groupedData[deposito][codigoPR]
+      }))
     }));
 
     setInventarioPorDeposito(formattedData);
   };
 
+  const fetchInventarioGeneral = useCallback(async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, "movimientos"));
+      const inventario = {};
+
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const cantidad = parseInt(data.cantidad, 10);
+        const key = `${data.codigoPR}-${data.deposito}`;
+
+        if (data.operacion === "Alta") {
+          if (inventario[key]) {
+            inventario[key].cantidad += cantidad;
+          } else {
+            inventario[key] = { codigoPR: data.codigoPR, deposito: data.deposito, cantidad };
+          }
+        } else if (data.operacion === "Baja") {
+          if (inventario[key]) {
+            inventario[key].cantidad -= cantidad;
+          } else {
+            inventario[key] = { codigoPR: data.codigoPR, deposito: data.deposito, cantidad: -cantidad };
+          }
+        }
+      });
+
+      const inventarioArray = Object.values(inventario);
+      formatInventarioPorDeposito(inventarioArray);
+    } catch (error) {
+      console.error("Error al cargar el inventario general:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchInventarioGeneral();
+  }, [fetchInventarioGeneral]);
+
   return (
     <Grid container spacing={2}>
       <Grid item xs={12}>
-        <Typography variant="h4" gutterBottom>Inventario General</Typography>
-        <TableContainer component={Paper}>
-          <Table sx={{ minWidth: 650 }} aria-label="simple table">
-            <TableHead>
-              <TableRow>
-                <TableCell>Código PR</TableCell>
-                <TableCell>Nombre</TableCell>
-                <TableCell>Categoría</TableCell>
-                <TableCell>Cantidad</TableCell>
-                <TableCell>Acciones</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {inventario.map(item => (
-                <TableRow key={item.id}>
-                  <TableCell>{item.codigoPR}</TableCell>
-                  <TableCell>{item.nombre}</TableCell>
-                  <TableCell>{item.categoria}</TableCell>
-                  <TableCell>{item.cantidad}</TableCell>
-                  <TableCell>
-                    <Button variant="contained" color="secondary">Eliminar</Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Grid>
-      <Grid item xs={12}>
-        <Divider sx={{ marginY: 2 }} />
         <Typography variant="h4" gutterBottom>Inventario por Depósitos</Typography>
-        <TableContainer component={Paper}>
-          <Table sx={{ minWidth: 650 }} aria-label="simple table">
-            <TableHead>
-              <TableRow>
-                <TableCell>Depósito</TableCell>
-                <TableCell>Cantidad de Items</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {inventarioPorDeposito.map(item => (
-                <TableRow key={item.deposito}>
-                  <TableCell>{item.deposito}</TableCell>
-                  <TableCell>{item.cantidad}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        {inventarioPorDeposito.map(deposito => (
+          <Box key={deposito.deposito} mb={4}>
+            <Typography variant="h6" gutterBottom>{deposito.deposito}</Typography>
+            <TableContainer component={Paper}>
+              <Table sx={{ minWidth: 650 }} aria-label="simple table">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Código PR</TableCell>
+                    <TableCell>Cantidad</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {deposito.productos.map(producto => (
+                    <TableRow key={producto.codigoPR}>
+                      <TableCell>{producto.codigoPR}</TableCell>
+                      <TableCell>{producto.cantidad}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Box>
+        ))}
       </Grid>
     </Grid>
   );
