@@ -13,13 +13,14 @@ import {
   TableBody,
   TableCell,
   TableContainer,
-  TableHead,
+ TableHead,
   TableRow,
   Paper,
   Divider
 } from '@mui/material';
-import { collection, getDocs, addDoc, query, where, updateDoc, doc, deleteDoc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, query, where, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import db from '../firebaseConfig';
+import { getDoc } from 'firebase/firestore';
 
 function ProductID() {
   const [productos, setProductos] = useState([]);
@@ -30,6 +31,7 @@ function ProductID() {
   const [selectedDeposito, setSelectedDeposito] = useState('');
   const [editMode, setEditMode] = useState({});
   const [depositos, setDepositos] = useState([]);
+  const [inventarioGeneral, setInventarioGeneral] = useState([]);
 
   useEffect(() => {
     const fetchInventoryIDs = async () => {
@@ -63,15 +65,49 @@ function ProductID() {
         const loadedDepositos = querySnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
-        })).filter(deposito => deposito.codigoDP !== undefined); // Filtrando solo los depósitos válidos
+        })).filter(deposito => deposito.codigoDP !== undefined);
         setDepositos(loadedDepositos);
       } catch (error) {
         console.error("Error al cargar los depósitos:", error);
       }
     };
 
+    const fetchInventarioGeneral = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "movimientos"));
+        const inventario = {};
+
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          const cantidad = parseInt(data.cantidad, 10);
+          const key = `${data.codigoPR}-${data.deposito}`;
+
+          if (data.operacion === "Alta") {
+            if (inventario[key]) {
+              inventario[key].cantidad += cantidad;
+            } else {
+              inventario[key] = { codigoPR: data.codigoPR, deposito: data.deposito, cantidad };
+            }
+          } else if (data.operacion === "Baja") {
+            if (inventario[key]) {
+              inventario[key].cantidad -= cantidad;
+            } else {
+              inventario[key] = { codigoPR: data.codigoPR, deposito: data.deposito, cantidad: -cantidad };
+            }
+          }
+        });
+
+        const inventarioArray = Object.values(inventario);
+
+        setInventarioGeneral(inventarioArray);
+      } catch (error) {
+        console.error("Error al cargar el inventario general:", error);
+      }
+    };
+
     fetchProductos();
     fetchDepositos();
+    fetchInventarioGeneral();
   }, []);
 
   const handleProcesar = async () => {
@@ -80,9 +116,21 @@ function ProductID() {
       return;
     }
 
+    const codigoPR = productos.find(p => p.nombre === selectedProducto).codigo;
+    const inventarioProducto = inventarioGeneral.find(item => item.codigoPR === codigoPR && item.deposito === selectedDeposito);
+    const cantidadDisponible = inventarioProducto ? inventarioProducto.cantidad : 0;
+
+    console.log(`Cantidad disponible para ${selectedProducto} (${codigoPR}) en ${selectedDeposito}: ${cantidadDisponible}`);
+    console.log(`Cantidad a numerar: ${cantidadNumerar}`);
+
+    if (cantidadDisponible < cantidadNumerar) {
+      alert(`No hay suficientes productos disponibles en el depósito ${selectedDeposito}.`);
+      return;
+    }
+
     const nuevosIDs = Array.from({ length: Number(cantidadNumerar) }, (_, index) => ({
-      codigoPR: selectedProducto,
-      nombre: productos.find(p => p.nombre === selectedProducto).nombre,
+      codigoPR,
+      nombre: selectedProducto,
       categoria: productos.find(p => p.nombre === selectedProducto).categoria,
       deposito: selectedDeposito,
       id: Number(numeroInicial) + index

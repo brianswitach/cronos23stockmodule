@@ -12,12 +12,28 @@ import {
   Box,
 } from '@mui/material';
 import db from '../firebaseConfig';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, setDoc, doc } from 'firebase/firestore';
 
 function Reports() {
   const [inventarioPorDeposito, setInventarioPorDeposito] = useState([]);
 
-  const formatInventarioPorDeposito = (inventarioData) => {
+  const saveToReportsDepositos = async (formattedData) => {
+    try {
+      for (const deposito of formattedData) {
+        const depositRef = doc(db, "reportsdepositos", deposito.deposito);
+        const depositData = deposito.productos.reduce((acc, producto) => {
+          acc[producto.codigoPR] = producto.cantidad;
+          return acc;
+        }, {});
+        await setDoc(depositRef, depositData);
+      }
+      console.log("Datos guardados en reportsdepositos con éxito");
+    } catch (error) {
+      console.error("Error al guardar en reportsdepositos:", error);
+    }
+  };
+
+  const formatInventarioPorDeposito = useCallback((inventarioData) => {
     const groupedData = inventarioData.reduce((acc, item) => {
       if (!acc[item.deposito]) {
         acc[item.deposito] = {};
@@ -38,7 +54,10 @@ function Reports() {
     }));
 
     setInventarioPorDeposito(formattedData);
-  };
+
+    // Save to Firestore
+    saveToReportsDepositos(formattedData);
+  }, []);
 
   const fetchInventarioGeneral = useCallback(async () => {
     try {
@@ -70,7 +89,7 @@ function Reports() {
     } catch (error) {
       console.error("Error al cargar el inventario general:", error);
     }
-  }, []);
+  }, [formatInventarioPorDeposito]);
 
   useEffect(() => {
     fetchInventarioGeneral();
