@@ -3,7 +3,11 @@ import {
   Typography,
   Button,
   Grid,
-  Divider,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  TextField,
   Table,
   TableBody,
   TableCell,
@@ -11,20 +15,19 @@ import {
   TableHead,
   TableRow,
   Paper,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  TextField
+  Divider
 } from '@mui/material';
+import { collection, getDocs, addDoc, deleteDoc, query, where } from 'firebase/firestore';
 import db from '../firebaseConfig';
-import { collection, getDocs, addDoc, doc, deleteDoc } from 'firebase/firestore';
 import emailjs from 'emailjs-com'; // Importa EmailJS
+import { doc } from 'firebase/firestore';
+
 
 function CrearMovimientos() {
   const [movimientos, setMovimientos] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [depositos, setDepositos] = useState([]);
+  const [inventarioGeneral, setInventarioGeneral] = useState([]);
   const [movimiento, setMovimiento] = useState({
     codigoPR: '',
     deposito: '',
@@ -46,6 +49,30 @@ function CrearMovimientos() {
     setClientes(clientesData);
     setDepositos(depositosData.filter(deposito => deposito.codigoDP)); // Filtrar solo los depósitos válidos
     setMovimientos(movimientosData);
+
+    const inventario = movimientosData.reduce((acc, item) => {
+      const key = `${item.codigoPR}-${item.deposito}`;
+      if (!acc[key]) {
+        acc[key] = 0;
+      }
+      if (item.operacion === "Alta") {
+        acc[key] += item.cantidad;
+      } else if (item.operacion === "Baja") {
+        acc[key] -= item.cantidad;
+      }
+      return acc;
+    }, {});
+
+    const inventarioArray = Object.keys(inventario).map(key => {
+      const [codigoPR, deposito] = key.split("-");
+      return {
+        codigoPR,
+        deposito,
+        cantidad: inventario[key]
+      };
+    });
+
+    setInventarioGeneral(inventarioArray);
   }, []);
 
   useEffect(() => {
@@ -80,10 +107,21 @@ function CrearMovimientos() {
       alert("Por favor, complete todos los campos del formulario.");
       return;
     }
+
+    const inventarioProducto = inventarioGeneral.find(item => item.codigoPR === movimiento.codigoPR && item.deposito === movimiento.deposito);
+    const cantidadDisponible = inventarioProducto ? inventarioProducto.cantidad : 0;
+
+    if (movimiento.operacion === "Baja" && cantidadDisponible < parseInt(movimiento.cantidad, 10)) {
+      alert("No puede dar de baja una cantidad de productos mayor a que hay en stock.");
+      return;
+    }
+
     const newMovimiento = {
       ...movimiento,
+      cantidad: parseInt(movimiento.cantidad, 10),
       fechaHora: new Date().toISOString()
     };
+
     await addDoc(collection(db, "movimientos"), newMovimiento);
     alert("Movimiento creado con éxito.");
     sendEmail(newMovimiento); // Enviar el correo electrónico
