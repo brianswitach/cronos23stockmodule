@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import { Drawer, List, ListItem, ListItemIcon, ListItemText, Divider, Typography, Box, CssBaseline, Toolbar, AppBar, ThemeProvider, createTheme } from '@mui/material';
+import {
+  Drawer, List, ListItem, ListItemIcon, ListItemText, Divider,
+  Typography, Box, CssBaseline, Toolbar, AppBar, ThemeProvider, createTheme
+} from '@mui/material';
 import InventoryIcon from '@mui/icons-material/Inventory';
 import CategoryIcon from '@mui/icons-material/Category';
 import StoreIcon from '@mui/icons-material/Store';
@@ -13,7 +16,7 @@ import ProductID from './components/ProductID';
 import InventarioGeneral from './components/inventariogeneral';
 import Categorias from './components/categorias';
 import Reports from './components/Reports';
-import Reports2 from './components/Reports2'; // Importa el nuevo componente
+import axios from 'axios';
 
 const drawerWidth = 240;
 
@@ -52,6 +55,19 @@ const theme = createTheme({
 });
 
 function App() {
+  const [name, setName] = useState('');
+  const [value, setValue] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await axios.post('http://localhost:3001/api/data', { name, value });
+      console.log('Data inserted:', response.data);
+    } catch (error) {
+      console.error('Error inserting data:', error);
+    }
+  };
+
   return (
     <ThemeProvider theme={theme}>
       <Router>
@@ -108,10 +124,6 @@ function App() {
                   <ListItemIcon><AssignmentIcon /></ListItemIcon>
                   <ListItemText primary="Reportes" />
                 </ListItem>
-                <ListItem button component={Link} to="/reportes2">
-                  <ListItemIcon><AssignmentIcon /></ListItemIcon>
-                  <ListItemText primary="Reportes por ID" />
-                </ListItem>
               </List>
             </Box>
           </Drawer>
@@ -126,7 +138,6 @@ function App() {
               <Route path="/inventario-general" element={<InventarioGeneral />} />
               <Route path="/categorias" element={<Categorias />} />
               <Route path="/reportes" element={<Reports />} />
-              <Route path="/reportes2" element={<Reports2 />} />
             </Routes>
           </Box>
         </Box>
@@ -136,3 +147,4 @@ function App() {
 }
 
 export default App;
+ 

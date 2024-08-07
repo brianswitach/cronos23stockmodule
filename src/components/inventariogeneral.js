@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
-import { collection, getDocs } from 'firebase/firestore';
-import db from '../firebaseConfig';
+import axios from 'axios';
 
 const InventarioGeneral = () => {
   const [inventarioGeneral, setInventarioGeneral] = useState([]);
@@ -9,11 +8,11 @@ const InventarioGeneral = () => {
   useEffect(() => {
     const fetchInventarioGeneral = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, "movimientos"));
+        const response = await axios.get('http://localhost:3001/movimientos');
+        const movimientos = response.data;
         const inventario = {};
 
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
+        movimientos.forEach((data) => {
           const cantidad = parseInt(data.cantidad, 10);
           const key = `${data.codigoPR}-${data.deposito}`;
 
@@ -43,6 +42,15 @@ const InventarioGeneral = () => {
     fetchInventarioGeneral();
   }, []);
 
+  const handleEliminar = async (codigoPR, deposito) => {
+    try {
+      await axios.delete(`http://localhost:3001/movimientos`, { data: { codigoPR, deposito } });
+      setInventarioGeneral(prev => prev.filter(item => !(item.codigoPR === codigoPR && item.deposito === deposito)));
+    } catch (error) {
+      console.error("Error al eliminar el movimiento:", error);
+    }
+  };
+
   return (
     <div>
       <Typography variant="h4" gutterBottom>
@@ -65,7 +73,7 @@ const InventarioGeneral = () => {
                 <TableCell>{row.deposito}</TableCell>
                 <TableCell>{row.cantidad}</TableCell>
                 <TableCell>
-                  <Button variant="contained" color="secondary">
+                  <Button variant="contained" color="secondary" onClick={() => handleEliminar(row.codigoPR, row.deposito)}>
                     ELIMINAR
                   </Button>
                 </TableCell>

@@ -12,8 +12,7 @@ import {
   Box,
   Button,
 } from '@mui/material';
-import db from '../firebaseConfig';
-import { collection, getDocs } from 'firebase/firestore';
+import axios from 'axios';
 
 function Reports2() {
   const [inventarioPorDeposito, setInventarioPorDeposito] = useState([]);
@@ -29,24 +28,28 @@ function Reports2() {
   }, []);
 
   const fetchInventarioPorDeposito = async () => {
-    const querySnapshot = await getDocs(collection(db, 'inventarioporids'));
-    const inventarioData = querySnapshot.docs.map(doc => doc.data());
+    try {
+      const response = await axios.get('http://localhost:3001/reports/inventario');
+      const inventarioData = response.data;
 
-    const groupedData = inventarioData.reduce((acc, item) => {
-      if (!acc[item.deposito]) {
-        acc[item.deposito] = [];
-      }
-      acc[item.deposito].push(item);
-      return acc;
-    }, {});
+      const groupedData = inventarioData.reduce((acc, item) => {
+        if (!acc[item.deposito]) {
+          acc[item.deposito] = [];
+        }
+        acc[item.deposito].push(item);
+        return acc;
+      }, {});
 
-    const formattedData = Object.keys(groupedData).map(deposito => ({
-      deposito,
-      productos: groupedData[deposito],
-    }));
+      const formattedData = Object.keys(groupedData).map(deposito => ({
+        deposito,
+        productos: groupedData[deposito],
+      }));
 
-    setInventarioPorDeposito(formattedData);
-    localStorage.setItem('inventarioPorDeposito', JSON.stringify(formattedData));
+      setInventarioPorDeposito(formattedData);
+      localStorage.setItem('inventarioPorDeposito', JSON.stringify(formattedData));
+    } catch (error) {
+      console.error("Error al cargar el inventario por depósito:", error);
+    }
   };
 
   const handleSort = (deposito) => {
@@ -57,9 +60,9 @@ function Reports2() {
       if (item.deposito === deposito) {
         const sortedProductos = [...item.productos].sort((a, b) => {
           if (newDirection === 'asc') {
-            return a.id - b.id;
+            return a.id_producto - b.id_producto;
           } else {
-            return b.id - a.id;
+            return b.id_producto - a.id_producto;
           }
         });
         return { ...item, productos: sortedProductos };
@@ -96,9 +99,9 @@ function Reports2() {
                 </TableHead>
                 <TableBody>
                   {deposito.productos.map(producto => (
-                    <TableRow key={producto.id}>
+                    <TableRow key={producto.id_producto}>
                       <TableCell>{producto.codigoPR}</TableCell>
-                      <TableCell>{producto.id}</TableCell>
+                      <TableCell>{producto.id_producto}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

@@ -13,14 +13,12 @@ import {
   TableBody,
   TableCell,
   TableContainer,
- TableHead,
+  TableHead,
   TableRow,
   Paper,
   Divider
 } from '@mui/material';
-import { collection, getDocs, addDoc, query, where, updateDoc, doc, deleteDoc } from 'firebase/firestore';
-import db from '../firebaseConfig';
-import { getDoc } from 'firebase/firestore';
+import axios from 'axios';
 
 function ProductID() {
   const [productos, setProductos] = useState([]);
@@ -47,13 +45,8 @@ function ProductID() {
   useEffect(() => {
     const fetchProductos = async () => {
       try {
-        const q = query(collection(db, "clientes"));
-        const querySnapshot = await getDocs(q);
-        const loadedProductos = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        setProductos(loadedProductos);
+        const response = await axios.get('http://localhost:3001/productos');
+        setProductos(response.data);
       } catch (error) {
         console.error("Error al cargar los productos:", error);
       }
@@ -61,12 +54,8 @@ function ProductID() {
 
     const fetchDepositos = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, "depositos"));
-        const loadedDepositos = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })).filter(deposito => deposito.codigoDP !== undefined);
-        setDepositos(loadedDepositos);
+        const response = await axios.get('http://localhost:3001/depositos');
+        setDepositos(response.data);
       } catch (error) {
         console.error("Error al cargar los depósitos:", error);
       }
@@ -74,11 +63,10 @@ function ProductID() {
 
     const fetchInventarioGeneral = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, "movimientos"));
+        const response = await axios.get('http://localhost:3001/movimientos');
         const inventario = {};
 
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
+        response.data.forEach((data) => {
           const cantidad = parseInt(data.cantidad, 10);
           const key = `${data.codigoPR}-${data.deposito}`;
 
@@ -120,9 +108,6 @@ function ProductID() {
     const inventarioProducto = inventarioGeneral.find(item => item.codigoPR === codigoPR && item.deposito === selectedDeposito);
     const cantidadDisponible = inventarioProducto ? inventarioProducto.cantidad : 0;
 
-    console.log(`Cantidad disponible para ${selectedProducto} (${codigoPR}) en ${selectedDeposito}: ${cantidadDisponible}`);
-    console.log(`Cantidad a numerar: ${cantidadNumerar}`);
-
     if (cantidadDisponible < cantidadNumerar) {
       alert(`No hay suficientes productos disponibles en el depósito ${selectedDeposito}.`);
       return;
@@ -133,23 +118,12 @@ function ProductID() {
       nombre: selectedProducto,
       categoria: productos.find(p => p.nombre === selectedProducto).categoria,
       deposito: selectedDeposito,
-      id: Number(numeroInicial) + index
+      id_producto: Number(numeroInicial) + index
     }));
-
-    const q = query(collection(db, "inventarioporids"), where("nombre", "==", selectedProducto));
-    const querySnapshot = await getDocs(q);
-    const existingIDs = querySnapshot.docs.map(doc => doc.data().id);
-
-    const idsDuplicados = nuevosIDs.some(nuevoID => existingIDs.includes(nuevoID.id));
-
-    if (idsDuplicados) {
-      alert("ID's duplicados");
-      return;
-    }
 
     try {
       for (const id of nuevosIDs) {
-        await addDoc(collection(db, "inventarioporids"), id);
+        await axios.post('http://localhost:3001/gestion_ids', id);
       }
       setInventarioIDs(prevInventarioIDs => [...prevInventarioIDs, ...nuevosIDs]);
       localStorage.setItem('inventarioIDs', JSON.stringify([...inventarioIDs, ...nuevosIDs]));
@@ -171,13 +145,9 @@ function ProductID() {
     localStorage.setItem('inventarioIDs', JSON.stringify(nuevosInventarioIDs));
 
     try {
-      const q = query(collection(db, "inventarioporids"), where("codigoPR", "==", fila.codigoPR), where("id", "==", fila.id));
-      const querySnapshot = await getDocs(q);
-      querySnapshot.forEach(async (docSnapshot) => {
-        await deleteDoc(doc(db, "inventarioporids", docSnapshot.id));
-      });
+      await axios.delete(`http://localhost:3001/gestion_ids/${fila.id_producto}`);
     } catch (error) {
-      console.error("Error al eliminar la fila de inventarioporids:", error);
+      console.error("Error al eliminar la fila de gestion_ids:", error);
     }
   };
 
@@ -193,27 +163,13 @@ function ProductID() {
 
   const handleSave = async (index) => {
     const item = inventarioIDs[index];
-    const docRef = doc(db, "inventarioporids", item.id.toString());
-
     try {
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        await updateDoc(docRef, {
-          deposito: item.deposito
-        });
-        alert("Movimiento realizado con éxito.");
-      } else {
-        await addDoc(collection(db, "inventarioporids"), {
-          ...item,
-          deposito: item.deposito
-        });
-        alert("Movimiento realizado con éxito.");
-      }
+      await axios.put(`http://localhost:3001/gestion_ids/${item.id_producto}`, { deposito: item.deposito });
+      alert("Movimiento realizado con éxito.");
     } catch (error) {
       console.error("Error al actualizar el depósito:", error);
       alert("Error al actualizar el depósito.");
     }
-
     toggleEditMode(index);
     localStorage.setItem('inventarioIDs', JSON.stringify(inventarioIDs));
   };
@@ -303,7 +259,7 @@ function ProductID() {
                         inv.deposito
                       )}
                     </TableCell>
-                    <TableCell>{inv.id}</TableCell>
+                    <TableCell>{inv.id_producto}</TableCell>
                     <TableCell>
                       {editMode[index] ? (
                         <Button onClick={() => handleSave(index)} variant="contained" color="primary" sx={{ mr: 1 }}>

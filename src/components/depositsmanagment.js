@@ -16,45 +16,24 @@ import {
   DialogTitle,
   Paper
 } from '@mui/material';
-import db from '../firebaseConfig';
-import {
-  collection,
-  getDocs,
-  doc,
-  updateDoc,
-  deleteDoc,
-  addDoc,
-  query,
-  orderBy,
-  limit
-} from 'firebase/firestore';
+import axios from 'axios';
 
 function DepositsManagement() {
   const [depositos, setDepositos] = useState([]);
   const [open, setOpen] = useState(false);
-  const [currentDeposito, setCurrentDeposito] = useState({ nombre: '' });
+  const [currentDeposito, setCurrentDeposito] = useState({ nombre: '', codigoDP: '' });
 
   useEffect(() => {
     fetchDepositos();
   }, []);
 
   const fetchDepositos = async () => {
-    const querySnapshot = await getDocs(collection(db, 'depositos'));
-    const depositsList = querySnapshot.docs
-      .map((doc) => ({
-        id: doc.id,
-        ...doc.data()
-      }))
-      .filter((deposito) => deposito.codigoDP !== undefined);
-    setDepositos(depositsList);
-  };
-
-  const generateAutoIncrementedCode = async () => {
-    const q = query(collection(db, 'depositos'), orderBy('codigoDP', 'desc'), limit(1));
-    const querySnapshot = await getDocs(q);
-    const lastDoc = querySnapshot.docs[0];
-    const lastCode = lastDoc ? parseInt(lastDoc.data().codigoDP, 10) : 0;
-    return (lastCode + 1).toString().padStart(5, '0'); // Rellena con ceros hasta tener 5 dígitos
+    try {
+      const response = await axios.get('http://localhost:3001/depositos');
+      setDepositos(response.data);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
   };
 
   const handleInputChange = (e) => {
@@ -67,13 +46,13 @@ function DepositsManagement() {
       alert('Por favor, complete el nombre.');
       return;
     }
-    const autoCode = await generateAutoIncrementedCode();
-    await addDoc(collection(db, 'depositos'), {
-      ...currentDeposito,
-      codigoDP: autoCode
-    });
-    fetchDepositos();
-    setCurrentDeposito({ nombre: '' }); // Reset fields
+    try {
+      await axios.post('http://localhost:3001/depositos', { nombre: currentDeposito.nombre });
+      fetchDepositos();
+      setCurrentDeposito({ nombre: '', codigoDP: '' });
+    } catch (error) {
+      console.error('Error adding deposito:', error);
+    }
   };
 
   const handleEdit = (deposito) => {
@@ -83,20 +62,27 @@ function DepositsManagement() {
 
   const handleClose = () => {
     setOpen(false);
-    setCurrentDeposito({ nombre: '' });
+    setCurrentDeposito({ nombre: '', codigoDP: '' });
   };
 
   const handleUpdate = async () => {
-    const depositoRef = doc(db, 'depositos', currentDeposito.id);
-    await updateDoc(depositoRef, currentDeposito);
-    fetchDepositos();
-    handleClose();
+    try {
+      await axios.put(`http://localhost:3001/depositos/${currentDeposito.id}`, currentDeposito);
+      fetchDepositos();
+      handleClose();
+    } catch (error) {
+      console.error('Error updating deposito:', error);
+    }
   };
 
   const handleDelete = async (id) => {
     if (window.confirm('¿Está seguro de que desea eliminar este depósito?')) {
-      await deleteDoc(doc(db, 'depositos', id));
-      fetchDepositos();
+      try {
+        await axios.delete(`http://localhost:3001/depositos/${id}`);
+        fetchDepositos();
+      } catch (error) {
+        console.error('Error deleting deposito:', error);
+      }
     }
   };
 

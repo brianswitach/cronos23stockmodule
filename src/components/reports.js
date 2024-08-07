@@ -10,90 +10,79 @@ import {
   TableRow,
   Paper,
   Box,
+  Divider
 } from '@mui/material';
-import db from '../firebaseConfig';
-import { collection, getDocs, setDoc, doc } from 'firebase/firestore';
+import axios from 'axios';
 
 function Reports() {
   const [inventarioPorDeposito, setInventarioPorDeposito] = useState([]);
+  const [cantidadIDsPorProducto, setCantidadIDsPorProducto] = useState([]);
 
-  const saveToReportsDepositos = async (formattedData) => {
+  const fetchInventarioPorDeposito = useCallback(async () => {
     try {
-      for (const deposito of formattedData) {
-        const depositRef = doc(db, "reportsdepositos", deposito.deposito);
-        const depositData = deposito.productos.reduce((acc, producto) => {
-          acc[producto.codigoPR] = producto.cantidad;
-          return acc;
-        }, {});
-        await setDoc(depositRef, depositData);
-      }
-      console.log("Datos guardados en reportsdepositos con éxito");
-    } catch (error) {
-      console.error("Error al guardar en reportsdepositos:", error);
-    }
-  };
+      const response = await axios.get('http://localhost:3001/reports/inventario');
+      const inventario = response.data;
 
-  const formatInventarioPorDeposito = useCallback((inventarioData) => {
-    const groupedData = inventarioData.reduce((acc, item) => {
-      if (!acc[item.deposito]) {
-        acc[item.deposito] = {};
-      }
-      if (!acc[item.deposito][item.codigoPR]) {
-        acc[item.deposito][item.codigoPR] = 0;
-      }
-      acc[item.deposito][item.codigoPR] += item.cantidad;
-      return acc;
-    }, {});
-
-    const formattedData = Object.keys(groupedData).map(deposito => ({
-      deposito,
-      productos: Object.keys(groupedData[deposito]).map(codigoPR => ({
-        codigoPR,
-        cantidad: groupedData[deposito][codigoPR]
-      }))
-    }));
-
-    setInventarioPorDeposito(formattedData);
-
-    // Save to Firestore
-    saveToReportsDepositos(formattedData);
-  }, []);
-
-  const fetchInventarioGeneral = useCallback(async () => {
-    try {
-      const querySnapshot = await getDocs(collection(db, "movimientos"));
-      const inventario = {};
-
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        const cantidad = parseInt(data.cantidad, 10);
-        const key = `${data.codigoPR}-${data.deposito}`;
-
-        if (data.operacion === "Alta") {
-          if (inventario[key]) {
-            inventario[key].cantidad += cantidad;
-          } else {
-            inventario[key] = { codigoPR: data.codigoPR, deposito: data.deposito, cantidad };
-          }
-        } else if (data.operacion === "Baja") {
-          if (inventario[key]) {
-            inventario[key].cantidad -= cantidad;
-          } else {
-            inventario[key] = { codigoPR: data.codigoPR, deposito: data.deposito, cantidad: -cantidad };
-          }
+      const groupedData = inventario.reduce((acc, item) => {
+        const key = `${item.codigoPR}-${item.deposito}`;
+        if (!acc[key]) {
+          acc[key] = { codigoPR: item.codigoPR, deposito: item.deposito, cantidad: 0 };
         }
-      });
+        if (item.operacion === 'Alta') {
+          acc[key].cantidad += item.cantidad;
+        } else if (item.operacion === 'Baja') {
+          acc[key].cantidad -= item.cantidad;
+        }
+        return acc;
+      }, {});
 
-      const inventarioArray = Object.values(inventario);
-      formatInventarioPorDeposito(inventarioArray);
+      const formattedData = Object.values(groupedData).reduce((acc, item) => {
+        if (!acc[item.deposito]) {
+          acc[item.deposito] = [];
+        }
+        acc[item.deposito].push({ codigoPR: item.codigoPR, cantidad: item.cantidad });
+        return acc;
+      }, {});
+
+      const finalData = Object.keys(formattedData).map(deposito => ({
+        deposito,
+        productos: formattedData[deposito]
+      }));
+
+      setInventarioPorDeposito(finalData);
     } catch (error) {
       console.error("Error al cargar el inventario general:", error);
     }
-  }, [formatInventarioPorDeposito]);
+  }, []);
+
+  const fetchCantidadIDsPorProducto = useCallback(async () => {
+    try {
+      const response = await axios.get('http://localhost:3001/gestion_ids');
+      const gestionIds = response.data;
+
+      const groupedByName = gestionIds.reduce((acc, item) => {
+        if (!acc[item.nombre]) {
+          acc[item.nombre] = 0;
+        }
+        acc[item.nombre] += 1;
+        return acc;
+      }, {});
+
+      const formattedData = Object.keys(groupedByName).map(nombre => ({
+        nombre,
+        cantidad: groupedByName[nombre]
+      }));
+
+      setCantidadIDsPorProducto(formattedData);
+    } catch (error) {
+      console.error("Error al cargar la cantidad de IDs por producto:", error);
+    }
+  }, []);
 
   useEffect(() => {
-    fetchInventarioGeneral();
-  }, [fetchInventarioGeneral]);
+    fetchInventarioPorDeposito();
+    fetchCantidadIDsPorProducto();
+  }, [fetchInventarioPorDeposito, fetchCantidadIDsPorProducto]);
 
   return (
     <Grid container spacing={2}>
@@ -122,6 +111,28 @@ function Reports() {
             </TableContainer>
           </Box>
         ))}
+
+        <Divider sx={{ marginY: 4 }} />
+
+        <Typography variant="h4" gutterBottom>Cantidad de IDs por Producto</Typography>
+        <TableContainer component={Paper}>
+          <Table sx={{ minWidth: 650 }} aria-label="simple table">
+            <TableHead>
+              <TableRow>
+                <TableCell>Producto</TableCell>
+                <TableCell>Cantidad de IDs</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {cantidadIDsPorProducto.map(producto => (
+                <TableRow key={producto.nombre}>
+                  <TableCell>{producto.nombre}</TableCell>
+                  <TableCell>{producto.cantidad}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Grid>
     </Grid>
   );

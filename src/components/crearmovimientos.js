@@ -17,15 +17,12 @@ import {
   Paper,
   Divider
 } from '@mui/material';
-import { collection, getDocs, addDoc, deleteDoc, query, where } from 'firebase/firestore';
-import db from '../firebaseConfig';
+import axios from 'axios';
 import emailjs from 'emailjs-com'; // Importa EmailJS
-import { doc } from 'firebase/firestore';
-
 
 function CrearMovimientos() {
   const [movimientos, setMovimientos] = useState([]);
-  const [clientes, setClientes] = useState([]);
+  const [productos, setProductos] = useState([]);
   const [depositos, setDepositos] = useState([]);
   const [inventarioGeneral, setInventarioGeneral] = useState([]);
   const [movimiento, setMovimiento] = useState({
@@ -36,21 +33,17 @@ function CrearMovimientos() {
   });
 
   const fetchDatos = useCallback(async () => {
-    const [usuariosSnapshot, depositosSnapshot, movimientosSnapshot] = await Promise.all([
-      getDocs(collection(db, "clientes")),
-      getDocs(collection(db, "depositos")),
-      getDocs(collection(db, "movimientos"))
+    const [productosRes, depositosRes, movimientosRes] = await Promise.all([
+      axios.get('http://localhost:3001/productos'),
+      axios.get('http://localhost:3001/depositos'),
+      axios.get('http://localhost:3001/movimientos')
     ]);
 
-    const clientesData = usuariosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    const depositosData = depositosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    const movimientosData = movimientosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    setProductos(productosRes.data);
+    setDepositos(depositosRes.data);
+    setMovimientos(movimientosRes.data);
 
-    setClientes(clientesData);
-    setDepositos(depositosData.filter(deposito => deposito.codigoDP)); // Filtrar solo los depósitos válidos
-    setMovimientos(movimientosData);
-
-    const inventario = movimientosData.reduce((acc, item) => {
+    const inventario = movimientosRes.data.reduce((acc, item) => {
       const key = `${item.codigoPR}-${item.deposito}`;
       if (!acc[key]) {
         acc[key] = 0;
@@ -122,16 +115,24 @@ function CrearMovimientos() {
       fechaHora: new Date().toISOString()
     };
 
-    await addDoc(collection(db, "movimientos"), newMovimiento);
-    alert("Movimiento creado con éxito.");
-    sendEmail(newMovimiento); // Enviar el correo electrónico
-    setMovimiento({ codigoPR: '', deposito: '', operacion: '', cantidad: '' });
-    fetchDatos();
+    try {
+      await axios.post('http://localhost:3001/movimientos', newMovimiento);
+      alert("Movimiento creado con éxito.");
+      sendEmail(newMovimiento); // Enviar el correo electrónico
+      setMovimiento({ codigoPR: '', deposito: '', operacion: '', cantidad: '' });
+      fetchDatos();
+    } catch (error) {
+      console.error('Error adding movimiento:', error);
+    }
   };
 
   const handleDeleteMovimiento = async (id) => {
-    await deleteDoc(doc(db, "movimientos", id));
-    fetchDatos();
+    try {
+      await axios.delete(`http://localhost:3001/movimientos/${id}`);
+      fetchDatos();
+    } catch (error) {
+      console.error('Error deleting movimiento:', error);
+    }
   };
 
   const sortMovimientos = (order) => {
@@ -158,9 +159,9 @@ function CrearMovimientos() {
             onChange={handleInputChange}
             name="codigoPR"
           >
-            {clientes.map((cliente) => (
-              <MenuItem key={cliente.id} value={cliente.codigo}>
-                {cliente.codigo}
+            {productos.map((producto) => (
+              <MenuItem key={producto.id} value={producto.codigo}>
+                {producto.codigo}
               </MenuItem>
             ))}
           </Select>

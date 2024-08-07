@@ -17,8 +17,7 @@ import {
   DialogTitle,
   Box,
 } from '@mui/material';
-import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import db from '../firebaseConfig';
+import axios from 'axios';
 
 function CategoriesManagement() {
   const [categorias, setCategorias] = useState([]);
@@ -28,12 +27,13 @@ function CategoriesManagement() {
   const [open, setOpen] = useState(false);
 
   const fetchCategorias = useCallback(async () => {
-    const categoriasSnapshot = await getDocs(collection(db, 'categorias'));
-    const categoriasData = categoriasSnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-    setCategorias(categoriasData);
+    try {
+      const response = await axios.get('http://localhost:3001/categorias');
+      setCategorias(response.data);
+      console.log("Categorías actualizadas:", response.data); // Depuración
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    }
   }, []);
 
   useEffect(() => {
@@ -50,9 +50,14 @@ function CategoriesManagement() {
       alert('Por favor, ingrese un nombre para la categoría.');
       return;
     }
-    await addDoc(collection(db, 'categorias'), { nombre });
-    setNombre('');
-    fetchCategorias();
+    try {
+      console.log("Enviando datos:", { nombre }); // Depuración
+      await axios.post('http://localhost:3001/categorias', { nombre });
+      setNombre('');
+      await fetchCategorias(); // Actualizar la lista de categorías después de guardar
+    } catch (error) {
+      console.error("Error saving category:", error);
+    }
   };
 
   const handleEditCategoria = (categoria) => {
@@ -66,17 +71,24 @@ function CategoriesManagement() {
       alert('Por favor, ingrese un nombre para la categoría.');
       return;
     }
-    const categoriaRef = doc(db, 'categorias', editId);
-    await updateDoc(categoriaRef, { nombre: editNombre });
-    setOpen(false);
-    setEditNombre('');
-    setEditId(null);
-    fetchCategorias();
+    try {
+      await axios.put(`http://localhost:3001/categorias/${editId}`, { nombre: editNombre });
+      setOpen(false);
+      setEditNombre('');
+      setEditId(null);
+      await fetchCategorias(); // Actualizar la lista de categorías después de actualizar
+    } catch (error) {
+      console.error("Error updating category:", error);
+    }
   };
 
   const handleDeleteCategoria = async (id) => {
-    await deleteDoc(doc(db, 'categorias', id));
-    fetchCategorias();
+    try {
+      await axios.delete(`http://localhost:3001/categorias/${id}`);
+      await fetchCategorias(); // Actualizar la lista de categorías después de eliminar
+    } catch (error) {
+      console.error("Error deleting category:", error);
+    }
   };
 
   return (
@@ -112,28 +124,36 @@ function CategoriesManagement() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {categorias.map((categoria) => (
-                <TableRow key={categoria.id}>
-                  <TableCell>{categoria.nombre}</TableCell>
-                  <TableCell>
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      onClick={() => handleEditCategoria(categoria)}
-                    >
-                      Editar
-                    </Button>
-                    <Button
-                      variant="contained"
-                      color="secondary"
-                      onClick={() => handleDeleteCategoria(categoria.id)}
-                      sx={{ marginLeft: 2 }}
-                    >
-                      Eliminar
-                    </Button>
+              {categorias.length > 0 ? (
+                categorias.map((categoria) => (
+                  <TableRow key={categoria.id}>
+                    <TableCell>{categoria.nombre}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={() => handleEditCategoria(categoria)}
+                      >
+                        Editar
+                      </Button>
+                      <Button
+                        variant="contained"
+                        color="secondary"
+                        onClick={() => handleDeleteCategoria(categoria.id)}
+                        sx={{ marginLeft: 2 }}
+                      >
+                        Eliminar
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={2} align="center">
+                    No hay categorías disponibles.
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </TableContainer>
