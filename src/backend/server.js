@@ -13,7 +13,7 @@ app.use(bodyParser.json());
 const db = mysql.createConnection({
   host: 'localhost',
   user: 'root',
-  password: 'Bsitich1/',
+  password: 'CAMBIAR PASSWORD',
   database: 'firebase_db'
 });
 
